@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MiniChat Translator</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --success: #22c55e;
+      --error: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+    .container {
+      width: 100%;
+      max-width: 600px;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .lang-selector {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .lang-btn {
+      flex: 1;
+      padding: 0.75rem;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .lang-btn.active {
+      border-color: var(--accent);
+      color: var(--text);
+      background: rgba(99, 102, 241, 0.1);
+    }
+    .input-wrap {
+      position: relative;
+    }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 1rem;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    textarea:focus {
+      border-color: var(--accent);
+    }
+    .char-count {
+      position: absolute;
+      bottom: 0.5rem;
+      right: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    .translate-btn {
+      width: 100%;
+      padding: 1rem;
+      margin-top: 1rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .translate-btn:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+    .translate-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .output-wrap {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+    .output-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+    .output-text {
+      font-size: 1.125rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .pinyin-toggle {
+      display: inline-block;
+      margin-top: 0.75rem;
+      padding: 0.375rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .pinyin-toggle:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+    .pinyin-text {
+      margin-top: 0.5rem;
+      font-size: 1rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    .copy-btn {
+      float: right;
+      padding: 0.375rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+    .copy-btn.copied {
+      border-color: var(--success);
+      color: var(--success);
+    }
+    .error {
+      color: var(--error);
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
+    .pwa-note {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2rem;
+    }
+    .pwa-note.hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>MiniChat Translator</h1>
+    <p class="subtitle">Powered by MiniMax AI</p>
+
+    <div class="card">
+      <div class="lang-selector">
+        <button class="lang-btn active" data-dir="en-zh">EN → ZH</button>
+        <button class="lang-btn" data-dir="zh-en">ZH → EN</button>
+      </div>
+
+      <div class="input-wrap">
+        <textarea id="input" placeholder="Enter text to translate..."></textarea>
+        <span class="char-count" id="charCount">0 chars</span>
+      </div>
+
+      <button class="translate-btn" id="translateBtn">Translate</button>
+
+      <div class="output-wrap" id="outputWrap" style="display:none;">
+        <span class="output-label">Translation</span>
+        <button class="copy-btn" id="copyBtn">Copy</button>
+        <div class="output-text" id="output"></div>
+        <div id="pinyinSection" style="display:none;">
+          <button class="pinyin-toggle" id="pinyinToggle">Show Pinyin</button>
+          <div class="pinyin-text" id="pinyinText"></div>
+        </div>
+      </div>
+
+      <div class="error" id="error"></div>
+    </div>
+
+    <p class="pwa-note" id="pwaNote">Add to home screen for the full PWA experience</p>
+  </div>
+
+  <script>
+    // State
+    let currentDir = 'en-zh';
+    let lastTranslation = '';
+    let timerInterval = null;
+    let elapsedSeconds = 0;
+
+    // Elements
+    const input = document.getElementById('input');
+    const charCount = document.getElementById('charCount');
+    const translateBtn = document.getElementById('translateBtn');
+    const outputWrap = document.getElementById('outputWrap');
+    const output = document.getElementById('output');
+    const pinyinSection = document.getElementById('pinyinSection');
+    const pinyinToggle = document.getElementById('pinyinToggle');
+    const pinyinText = document.getElementById('pinyinText');
+    const copyBtn = document.getElementById('copyBtn');
+    const errorEl = document.getElementById('error');
+    const pwaNote = document.getElementById('pwaNote');
+    const langBtns = document.querySelectorAll('.lang-btn');
+
+    // PWA: Hide install note if already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      pwaNote.classList.add('hidden');
+    }
+
+    // Character count
+    input.addEventListener('input', () => {
+      const len = input.value.length;
+      charCount.textContent = `${len} char${len !== 1 ? 's' : ''}`;
+    });
+
+    // Language toggle
+    langBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        langBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentDir = btn.dataset.dir;
+      });
+    });
+
+    // Timer display
+    function startTimer() {
+      elapsedSeconds = 0;
+      translateBtn.textContent = 'Translating... 0s';
+      timerInterval = setInterval(() => {
+        elapsedSeconds++;
+        translateBtn.textContent = `Translating... ${elapsedSeconds}s`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      translateBtn.textContent = 'Translate';
+    }
+
+    // Translate
+    async function translate() {
+      const text = input.value.trim();
+      if (!text) return;
+
+      errorEl.textContent = '';
+      outputWrap.style.display = 'none';
+      pinyinSection.style.display = 'none';
+      startTimer();
+      translateBtn.disabled = true;
+
+      try {
+        // Detect source language from direction
+        const sourceLang = currentDir === 'en-zh' ? 'English' : 'Chinese';
+        const targetLang = currentDir === 'en-zh' ? 'Chinese' : 'English';
+
+        const res = await fetch('https://api.minimax.chat/v1/text/translate_task', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + apiKey
+          },
+          body: JSON.stringify({
+            model: 'MiniMax-Text-01',
+            messages: [
+              { role: 'system', content: `You are a translator. Translate the following text from ${sourceLang} to ${targetLang}. Only output the translation, nothing else.` },
+              { role: 'user', content: text }
+            ]
+          })
+        });
+
+        if (!res.ok) throw new Error('Translation failed');
+
+        const data = await res.json();
+        const translation = data.choices?.[0]?.message?.content || data.text || '';
+
+        lastTranslation = translation;
+        output.textContent = translation;
+        outputWrap.style.display = 'block';
+
+        // Show pinyin toggle for ZH->EN translations
+        if (currentDir === 'zh-en') {
+          pinyinSection.style.display = 'block';
+          pinyinToggle.textContent = 'Show Pinyin';
+          pinyinText.style.display = 'none';
+        }
+      } catch (err) {
+        errorEl.textContent = 'Translation failed. Check API key and try again.';
+      } finally {
+        stopTimer();
+        translateBtn.disabled = false;
+      }
+    }
+
+    translateBtn.addEventListener('click', translate);
+
+    // Pinyin toggle
+    let pinyinLoaded = false;
+    pinyinToggle.addEventListener('click', async () => {
+      if (pinyinText.style.display === 'none') {
+        if (!pinyinLoaded) {
+          pinyinToggle.textContent = 'Loading...';
+          try {
+            const res = await fetch('https://api.minimax.chat/v1/text/translate_task', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + apiKey
+              },
+              body: JSON.stringify({
+                model: 'MiniMax-Text-01',
+                messages: [
+                  { role: 'system', content: 'You are a Chinese pinyin converter. Convert the following Chinese text to pinyin (romanized Chinese). Only output the pinyin, nothing else. Use spaces between words.' },
+                  { role: 'user', content: lastTranslation }
+                ]
+              })
+            });
+            const data = await res.json();
+            pinyinText.textContent = data.choices?.[0]?.message?.content || data.text || '';
+            pinyinLoaded = true;
+          } catch {
+            pinyinText.textContent = '(failed to load pinyin)';
+          }
+          pinyinToggle.textContent = 'Hide Pinyin';
+          pinyinText.style.display = 'block';
+        } else {
+          pinyinToggle.textContent = 'Hide Pinyin';
+          pinyinText.style.display = 'block';
+        }
+      } else {
+        pinyinToggle.textContent = 'Show Pinyin';
+        pinyinText.style.display = 'none';
+      }
+    });
+
+    // Copy
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(lastTranslation).then(() => {
+        copyBtn.textContent = 'Copied!';
+        copyBtn.classList.add('copied');
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy';
+          copyBtn.classList.remove('copied');
+        }, 1500);
+      });
+    });
+
+    // PWA: Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+  <script src="config.js"></script>
+</body>
+</html>
