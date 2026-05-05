@@ -305,6 +305,7 @@
         // Detect source language from direction
         const sourceLang = currentDir === 'en-zh' ? 'English' : 'Chinese';
         const targetLang = currentDir === 'en-zh' ? 'Chinese' : 'English';
+        const styleHint = currentDir === 'en-zh' ? 'Write natural, casual Chinese like texting - use slang, abbreviations, emojis if fitting.' : 'Write natural, casual English like texting - use slang, abbreviations.';
 
         const res = await fetch(baseUrl + '/chat/completions', {
           method: 'POST',
@@ -316,7 +317,7 @@
             model: 'MiniMax-M2.1',
             max_tokens: 200,
             messages: [
-              { role: 'system', content: `You are a translator. Translate the following text from ${sourceLang} to ${targetLang}. Only output the translation, nothing else.` },
+              { role: 'system', content: `Translate ${sourceLang} to ${targetLang}. ${styleHint} Only output the translation.` },
               { role: 'user', content: text }
             ]
           })
@@ -325,8 +326,10 @@
         if (!res.ok) throw new Error('Translation failed');
 
         const data = await res.json();
-        const translation = data.choices?.[0]?.message?.content || '';
-
+        let translation = data.choices?.[0]?.message?.content || '';
+        // Remove thinking tags if present
+        translation = translation.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+        
         lastTranslation = translation;
         output.textContent = translation;
         outputWrap.style.display = 'block';
@@ -338,7 +341,8 @@
           pinyinText.style.display = 'none';
         }
       } catch (err) {
-        errorEl.textContent = 'Translation failed. Check API key and try again.';
+        errorEl.textContent = 'Translation failed: ' + (err.message || 'Unknown error');
+        console.error('Translation error:', err);
       } finally {
         stopTimer();
         translateBtn.disabled = false;
@@ -363,7 +367,7 @@
               body: JSON.stringify({
                 model: 'MiniMax-M2.1',
                 messages: [
-                  { role: 'system', content: 'You are a Chinese pinyin converter. Convert the following Chinese text to pinyin (romanized Chinese). Only output the pinyin, nothing else. Use spaces between words.' },
+                  { role: 'system', content: 'Convert the Chinese text to casual pinyin (romanized Chinese) like texting. Use spaces. Only output the pinyin.',
                   { role: 'user', content: lastTranslation }
                 ]
               })
