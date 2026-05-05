@@ -306,14 +306,15 @@
         const sourceLang = currentDir === 'en-zh' ? 'English' : 'Chinese';
         const targetLang = currentDir === 'en-zh' ? 'Chinese' : 'English';
 
-        const res = await fetch('https://api.minimax.chat/v1/text/translate_task', {
+        const res = await fetch(baseUrl + '/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + apiKey
           },
           body: JSON.stringify({
-            model: 'MiniMax-Text-01',
+            model: 'MiniMax-M2.1',
+            max_tokens: 200,
             messages: [
               { role: 'system', content: `You are a translator. Translate the following text from ${sourceLang} to ${targetLang}. Only output the translation, nothing else.` },
               { role: 'user', content: text }
@@ -324,7 +325,7 @@
         if (!res.ok) throw new Error('Translation failed');
 
         const data = await res.json();
-        const translation = data.choices?.[0]?.message?.content || data.text || '';
+        const translation = data.choices?.[0]?.message?.content || '';
 
         lastTranslation = translation;
         output.textContent = translation;
@@ -353,14 +354,14 @@
         if (!pinyinLoaded) {
           pinyinToggle.textContent = 'Loading...';
           try {
-            const res = await fetch('https://api.minimax.chat/v1/text/translate_task', {
+            const res = await fetch(baseUrl + '/chat/completions', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + apiKey
               },
               body: JSON.stringify({
-                model: 'MiniMax-Text-01',
+                model: 'MiniMax-M2.1',
                 messages: [
                   { role: 'system', content: 'You are a Chinese pinyin converter. Convert the following Chinese text to pinyin (romanized Chinese). Only output the pinyin, nothing else. Use spaces between words.' },
                   { role: 'user', content: lastTranslation }
@@ -368,7 +369,7 @@
               })
             });
             const data = await res.json();
-            pinyinText.textContent = data.choices?.[0]?.message?.content || data.text || '';
+            pinyinText.textContent = data.choices?.[0]?.message?.content || '';
             pinyinLoaded = true;
           } catch {
             pinyinText.textContent = '(failed to load pinyin)';
