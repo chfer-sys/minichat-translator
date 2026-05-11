@@ -43,11 +43,20 @@ A minimal, mobile-first translation PWA for casual chat. Dark-themed, instant lo
 - On tap: shows "Translating... Xs" with live second counter
 - Disabled while loading
 - Returns to "Translate" on complete/error
+- **Guard**: `isTranslating` flag prevents double-click race condition (hard to reproduce but logged as issue)
 
 ### Translation Output
 - Read-only display area with pre-wrap
 - Copy button (top-right): copies to clipboard, shows "Copied!" for 1.5s then reverts
 - Pinyin toggle (ZH→EN only): "Show/Hide Pinyin" — lazy loads pinyin via second API call
+
+### Translation History
+- Stored in `localStorage` as JSON array (max 50 entries, FIFO)
+- Each entry: `{ id, text, translation, direction, timestamp }`
+- History panel: toggle via History button in header
+- Click item → loads source text + translation into main UI
+- Clear all: confirm dialog then wipe localStorage
+- **Export CSV**: generates `minichat-translations-YYYY-MM-DD.csv` with columns: Direction, Source Text, Translation, Timestamp
 
 ### PWA
 - Service worker: network-first, cache fallback

@@ -36,18 +36,128 @@
       width: 100%;
       max-width: 600px;
     }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
     h1 {
       font-size: 1.5rem;
       font-weight: 700;
-      margin-bottom: 0.5rem;
-      text-align: center;
+      text-align: left;
+    }
+    .history-btn {
+      padding: 0.5rem 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .history-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+    .history-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(99, 102, 241, 0.1);
     }
     .subtitle {
       color: var(--text-muted);
       font-size: 0.875rem;
-      text-align: center;
       margin-bottom: 2rem;
     }
+
+    /* History Panel */
+    .history-panel {
+      display: none;
+      margin-bottom: 1rem;
+    }
+    .history-panel.open {
+      display: block;
+    }
+    .history-empty {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      text-align: center;
+      padding: 1.5rem;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+    }
+    .history-list {
+      max-height: 320px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .history-item {
+      padding: 0.875rem 1rem;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .history-item:last-child {
+      border-bottom: none;
+    }
+    .history-item:hover {
+      background: rgba(99, 102, 241, 0.08);
+    }
+    .history-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.375rem;
+    }
+    .history-item-dir {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .history-item-time {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+    }
+    .history-item-source {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    .history-item-translation {
+      font-size: 0.875rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      margin-top: 0.25rem;
+    }
+    .history-footer {
+      padding: 0.75rem 1rem;
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+    .history-clear-btn {
+      background: none;
+      border: none;
+      color: var(--error);
+      font-size: 0.8125rem;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    .history-clear-btn:hover {
+      opacity: 1;
+    }
+
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -199,8 +309,21 @@
 </head>
 <body>
   <div class="container">
-    <h1>MiniChat Translator</h1>
+    <div class="header">
+      <h1>MiniChat Translator</h1>
+      <button class="history-btn" id="historyBtn">History</button>
+    </div>
     <p class="subtitle">Powered by MiniMax AI</p>
+
+    <!-- History Panel -->
+    <div class="history-panel" id="historyPanel">
+      <div class="history-list" id="historyList"></div>
+      <div class="history-footer" id="historyFooter" style="display:none;">
+        <button class="history-export-btn" id="exportHistoryBtn" style="background:none;border:none;color:var(--accent);font-size:0.8125rem;cursor:pointer;opacity:0.8;transition:opacity 0.2s;">Export CSV</button>
+        <span style="color:var(--border);margin:0 0.5rem;">|</span>
+        <button class="history-clear-btn" id="clearHistoryBtn">Clear all history</button>
+      </div>
+    </div>
 
     <div class="card">
       <div class="lang-selector">
@@ -231,12 +354,16 @@
     <p class="pwa-note" id="pwaNote">Add to home screen for the full PWA experience</p>
   </div>
 
+  <script src="config.js"></script>
   <script>
     // State
     let currentDir = 'en-zh';
     let lastTranslation = '';
+    let lastSourceText = '';
     let timerInterval = null;
     let elapsedSeconds = 0;
+    let isTranslating = false; // Guard against concurrent translation calls
+    const MAX_HISTORY = 50;
 
     // Elements
     const input = document.getElementById('input');
@@ -251,11 +378,171 @@
     const errorEl = document.getElementById('error');
     const pwaNote = document.getElementById('pwaNote');
     const langBtns = document.querySelectorAll('.lang-btn');
+    const historyBtn = document.getElementById('historyBtn');
+    const historyPanel = document.getElementById('historyPanel');
+    const historyList = document.getElementById('historyList');
+    const historyFooter = document.getElementById('historyFooter');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const exportHistoryBtn = document.getElementById('exportHistoryBtn');
 
     // PWA: Hide install note if already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
       pwaNote.classList.add('hidden');
     }
+
+    // --- History Functions ---
+    function getHistory() {
+      try {
+        return JSON.parse(localStorage.getItem('minichat_history') || '[]');
+      } catch {
+        return [];
+      }
+    }
+
+    function saveHistory(history) {
+      localStorage.setItem('minichat_history', JSON.stringify(history));
+    }
+
+    function addToHistory(text, translation, direction) {
+      const history = getHistory();
+      const entry = {
+        id: Date.now(),
+        text: text,
+        translation: translation,
+        direction: direction,
+        timestamp: new Date().toISOString()
+      };
+      history.unshift(entry);
+      if (history.length > MAX_HISTORY) {
+        history.pop();
+      }
+      saveHistory(history);
+    }
+
+    function removeFromHistory(id) {
+      const history = getHistory().filter(item => item.id !== id);
+      saveHistory(history);
+      renderHistory();
+    }
+
+    function clearHistory() {
+      saveHistory([]);
+      renderHistory();
+    }
+
+    function exportHistoryCSV() {
+      const history = getHistory();
+      if (history.length === 0) {
+        alert('No history to export.');
+        return;
+      }
+      const header = 'Direction,Source Text,Translation,Timestamp\n';
+      const rows = history.map(item => {
+        const dir = item.direction === 'en-zh' ? 'EN → ZH' : 'ZH → EN';
+        const source = item.text.replace(/"/g, '""');
+        const trans = item.translation.replace(/"/g, '""');
+        const ts = new Date(item.timestamp).toISOString();
+        return `"${dir}","${source}","${trans}","${ts}"`;
+      }).join('\n');
+      const csv = header + rows;
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `minichat-translations-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function formatRelativeTime(isoString) {
+      const date = new Date(isoString);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      if (diffMins < 1) return 'just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      return date.toLocaleDateString();
+    }
+
+    function renderHistory() {
+      const history = getHistory();
+      if (history.length === 0) {
+        historyList.innerHTML = '<div class="history-empty">No translation history yet</div>';
+        historyFooter.style.display = 'none';
+        return;
+      }
+      historyList.innerHTML = history.map(item => `
+        <div class="history-item" data-id="${item.id}">
+          <div class="history-item-header">
+            <span class="history-item-dir">${item.direction === 'en-zh' ? 'EN → ZH' : 'ZH → EN'}</span>
+            <span class="history-item-time">${formatRelativeTime(item.timestamp)}</span>
+          </div>
+          <div class="history-item-source">${escapeHtml(item.text)}</div>
+          <div class="history-item-translation">${escapeHtml(item.translation)}</div>
+        </div>
+      `).join('');
+      historyFooter.style.display = 'block';
+
+      // Attach click handlers
+      historyList.querySelectorAll('.history-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const id = parseInt(el.dataset.id);
+          const item = getHistory().find(h => h.id === id);
+          if (item) {
+            loadHistoryItem(item);
+          }
+        });
+      });
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function loadHistoryItem(item) {
+      // Set language direction
+      currentDir = item.direction;
+      langBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.dir === item.direction);
+      });
+      // Set input and output
+      input.value = item.text;
+      charCount.textContent = `${item.text.length} char${item.text.length !== 1 ? 's' : ''}`;
+      lastSourceText = item.text;
+      lastTranslation = item.translation;
+      output.textContent = item.translation;
+      outputWrap.style.display = 'block';
+      // Reset pinyin state
+      pinyinSection.style.display = 'none';
+      // Close history panel
+      historyPanel.classList.remove('open');
+      historyBtn.classList.remove('active');
+    }
+
+    // History panel toggle
+    historyBtn.addEventListener('click', () => {
+      const isOpen = historyPanel.classList.toggle('open');
+      historyBtn.classList.toggle('active', isOpen);
+      if (isOpen) {
+        renderHistory();
+      }
+    });
+
+    // Clear history
+    clearHistoryBtn.addEventListener('click', () => {
+      if (confirm('Clear all translation history?')) {
+        clearHistory();
+      }
+    });
+
+    // Export history to CSV
+    exportHistoryBtn.addEventListener('click', exportHistoryCSV);
 
     // Character count
     input.addEventListener('input', () => {
@@ -294,7 +581,9 @@
     async function translate() {
       const text = input.value.trim();
       if (!text) return;
+      if (isTranslating) return; // Guard against double-click / race condition
 
+      isTranslating = true;
       errorEl.textContent = '';
       outputWrap.style.display = 'none';
       pinyinSection.style.display = 'none';
@@ -302,7 +591,6 @@
       translateBtn.disabled = true;
 
       try {
-        // Detect source language from direction
         const sourceLang = currentDir === 'en-zh' ? 'English' : 'Chinese';
         const targetLang = currentDir === 'en-zh' ? 'Chinese' : 'English';
         const styleHint = currentDir === 'en-zh' ? 'Write natural, casual Chinese like texting - use slang, abbreviations, emojis if fitting.' : 'Write natural, casual English like texting - use slang, abbreviations.';
@@ -315,7 +603,7 @@
           },
           body: JSON.stringify({
             model: 'MiniMax-M2.1',
-            max_tokens: 200,
+            max_tokens: 2000,
             reasoning: { enable: false },
             messages: [
               { role: 'system', content: `Translate ${sourceLang} to ${targetLang}. ${styleHint} Only output the translation.` },
@@ -328,11 +616,14 @@
 
         const data = await res.json();
         let translation = data.choices?.[0]?.message?.reasoning_content?.trim() || data.choices?.[0]?.message?.content?.trim() || '';
-        // Remove thinking tags if present
         translation = translation.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
         lastTranslation = translation;
+        lastSourceText = text;
         output.textContent = translation;
         outputWrap.style.display = 'block';
+
+        // Save to history
+        addToHistory(text, translation, currentDir);
 
         // Show pinyin toggle for ZH->EN translations
         if (currentDir === 'zh-en') {
@@ -344,6 +635,7 @@
         errorEl.textContent = 'Translation failed: ' + (err.message || 'Unknown error');
         console.error('Translation error:', err);
       } finally {
+        isTranslating = false;
         stopTimer();
         translateBtn.disabled = false;
       }
@@ -368,7 +660,7 @@
                 model: 'MiniMax-M2.1',
                 reasoning: { enable: false },
                 messages: [
-                  { role: 'system', content: 'Convert the Chinese text to casual pinyin (romanized Chinese) like texting. Use spaces. Only output the pinyin.',
+                  { role: 'system', content: 'Convert the Chinese text to casual pinyin (romanized Chinese) like texting. Use spaces. Only output the pinyin.' },
                   { role: 'user', content: lastTranslation }
                 ]
               })
@@ -408,6 +700,5 @@
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
   </script>
-  <script src="config.js"></script>
 </body>
 </html>
