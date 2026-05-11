@@ -1,4 +1,4 @@
-const CACHE = 'minichat-translator-v1';
+const CACHE = 'minichat-translator-v2';
 
 const ASSETS = [
   './',
