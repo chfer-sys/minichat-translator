@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    name: Lint + Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create stub config.js (gitignored, needed for test imports)
+        run: |
+          cat > config.js <<'EOF'
+          // CI stub — never committed. Real config.js is gitignored and lives on dev machines.
+          export const apiKey = 'CI_STUB_KEY_NOT_REAL';
+          export const baseUrl = 'https://api.minimax.io/v1';
+          EOF
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
