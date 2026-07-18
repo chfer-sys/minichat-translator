@@ -7,7 +7,6 @@ import { state } from './state.js';
 import { translate, startTimer, stopTimer } from './translate.js';
 import { loadPinyin } from './pinyin.js';
 import { copyToClipboard } from './clipboard.js';
-import { registerServiceWorker } from './sw-register.js';
 import { getHistory, saveHistory, addToHistory, exportHistoryCSV, renderHistoryHTML } from './history.js';
 
 /** @type {HTMLTextAreaElement} */
@@ -306,5 +305,5 @@ export function init() {
   initClearHistory();
   initExportHistory();
   wireEvents();
-  registerServiceWorker();
+  // Service worker registration is handled by vite-plugin-pwa automatically
 }
