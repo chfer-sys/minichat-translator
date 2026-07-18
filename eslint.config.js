@@ -21,6 +21,9 @@ export default [
         fetch: 'readonly',
         alert: 'readonly',
         confirm: 'readonly',
+        window: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
       },
     },
     rules: {
