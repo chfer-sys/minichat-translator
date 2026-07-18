@@ -1,0 +1,33 @@
+#!/bin/bash
+# Deploy minichat-translator to a remote host via rsync + docker compose.
+#
+# Usage:
+#   DEPLOY_HOST=192.168.100.101 ./deploy.sh
+#   DEPLOY_HOST=192.168.100.101 DEPLOY_USER=root DEPLOY_PATH=/opt/minichat-translator ./deploy.sh
+#
+# To customize: copy this file to deploy.sh (gitignored) and edit, or set env vars.
+
+set -euo pipefail
+
+DEPLOY_USER="${DEPLOY_USER:-root}"
+DEPLOY_HOST="${DEPLOY_HOST:?  ERROR: DEPLOY_HOST env var is required (e.g. 192.168.100.101)}"
+DEPLOY_PATH="${DEPLOY_PATH:-/opt/minichat-translator}"
+
+SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+
+echo ">> Deploying to ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH} ..."
+
+rsync -avz --progress \
+  -e "ssh ${SSH_OPTS}" \
+  --exclude ".git" \
+  --exclude ".osgrep" \
+  --exclude "node_modules" \
+  --exclude ".DS_Store" \
+  --exclude "deploy.sh" \
+  --exclude "deploy.sh.example" \
+  . "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
+
+ssh ${SSH_OPTS} "${DEPLOY_USER}@${DEPLOY_HOST}" \
+  "cd ${DEPLOY_PATH} && docker compose up -d"
+
+echo ">> Deploy complete."
