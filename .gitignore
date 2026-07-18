@@ -21,3 +21,7 @@ deploy.sh
 # Node / build
 node_modules/
 dist/
+.vite/
+
+# Vite / env locals
+*.local
