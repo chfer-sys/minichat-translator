@@ -9,6 +9,7 @@ import { loadPinyin } from './pinyin.js';
 import { copyToClipboard } from './clipboard.js';
 import { registerServiceWorker } from './sw-register.js';
 import { getHistory, saveHistory, addToHistory, exportHistoryCSV, renderHistoryHTML } from './history.js';
+import { checkHealth } from './health.js';
 
 /** @type {HTMLTextAreaElement} */
 let input;
@@ -46,6 +47,12 @@ let historyFooter;
 let clearHistoryBtn;
 /** @type {HTMLButtonElement} */
 let exportHistoryBtn;
+/** @type {HTMLButtonElement} */
+let statusBtn;
+/** @type {HTMLSpanElement} */
+let statusDot;
+/** @type {HTMLSpanElement} */
+let statusText;
 
 /**
  * Cache all DOM references by id.
@@ -70,6 +77,9 @@ export function cacheElements() {
   historyFooter = document.getElementById('historyFooter');
   clearHistoryBtn = document.getElementById('clearHistoryBtn');
   exportHistoryBtn = document.getElementById('exportHistoryBtn');
+  statusBtn = document.getElementById('statusBtn');
+  statusDot = document.getElementById('statusDot');
+  statusText = document.getElementById('statusText');
 }
 
 /** PWA: hide install note if already installed */
@@ -286,6 +296,34 @@ export function handleCopyClick() {
   );
 }
 
+/** Status button click handler */
+export async function handleStatusClick() {
+  statusText.textContent = 'Checking…';
+  statusDot.className = 'status-dot checking';
+
+  try {
+    const result = await checkHealth();
+    if (result.ok) {
+      statusText.textContent = `Online · ${result.latencyMs}ms`;
+      statusDot.className = 'status-dot online';
+    } else {
+      statusText.textContent = 'Offline';
+      statusDot.className = 'status-dot offline';
+      statusBtn.title = result.error || '';
+    }
+  } catch {
+    statusText.textContent = 'Offline';
+    statusDot.className = 'status-dot offline';
+  }
+}
+
+/** Initialize status button */
+function initStatusButton() {
+  statusBtn.addEventListener('click', handleStatusClick);
+  // Initial health check on load
+  handleStatusClick();
+}
+
 /** Wire all event listeners */
 function wireEvents() {
   translateBtn.addEventListener('click', handleTranslateClick);
@@ -306,5 +344,6 @@ export function init() {
   initClearHistory();
   initExportHistory();
   wireEvents();
+  initStatusButton();
   registerServiceWorker();
 }

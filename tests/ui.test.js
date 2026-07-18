@@ -10,6 +10,7 @@ import {
   handleLanguageBtnClick,
   loadHistoryItem,
   downloadCSV,
+  handleStatusClick,
 } from '../src/ui.js';
 
 describe('ui.js DOM behavior', () => {
@@ -48,6 +49,10 @@ describe('ui.js DOM behavior', () => {
       <div id="historyFooter" style="display:none;"></div>
       <button id="clearHistoryBtn">Clear all history</button>
       <button id="exportHistoryBtn">Export CSV</button>
+      <button id="statusBtn" title="Check API status">
+        <span id="statusDot"></span>
+        <span id="statusText">Check</span>
+      </button>
     `;
 
     // Clear localStorage mock
@@ -179,5 +184,34 @@ describe('ui.js DOM behavior', () => {
     createSpy.mockRestore();
     createObjectURLSpy.mockRestore();
     revokeObjectURLSpy.mockRestore();
+  });
+
+  // -------------------------------------------------------------------------
+  // Test 5: status button updates statusText on click
+  // -------------------------------------------------------------------------
+  it('handleStatusClick updates statusText to "Checking…" immediately', async () => {
+    const statusText = document.getElementById('statusText');
+    const statusDot = document.getElementById('statusDot');
+
+    // Mock fetch for checkHealth
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ choices: [{ message: { content: 'ok' } }] }),
+    });
+
+    // Start the async handler but don't await yet
+    const promise = handleStatusClick();
+
+    // Should immediately show "Checking…" with checking class
+    expect(statusText.textContent).toBe('Checking…');
+    expect(statusDot.classList.contains('checking')).toBe(true);
+
+    // Wait for completion
+    await promise;
+
+    // Should show online result
+    expect(statusText.textContent).toMatch(/^Online · \d+ms$/);
+    expect(statusDot.classList.contains('online')).toBe(true);
   });
 });
