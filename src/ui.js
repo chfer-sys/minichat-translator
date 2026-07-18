@@ -520,3 +520,16 @@ export function init() {
   initStatusButton();
   registerServiceWorker();
 }
+
+/**
+ * Boot — invoke init() in browser context only.
+ *
+ * Module scripts (`<script type="module">`) are deferred, so the DOM is
+ * fully parsed by the time this runs in a real browser. We guard by
+ * checking for an expected element so the auto-init does NOT fire when
+ * this module is imported by vitest tests (which set up their own DOM
+ * in beforeEach, AFTER the import has already executed).
+ */
+if (typeof document !== 'undefined' && document.getElementById('translateBtn')) {
+  init();
+}

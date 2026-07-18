@@ -10,7 +10,7 @@
  * fulfilled with deterministic MiniMax-style JSON bodies. No real API call
  * is ever made — tests are hermetic, free, and fast.
  */
-const { test, expect } = require('@playwright/test');
+import { test, expect } from '@playwright/test';
 
 /**
  * Install the standard mocked route for `/chat/completions`.
@@ -42,8 +42,8 @@ async function mockChatCompletions(page, { mode = 'ok' } = {}) {
     }
     const sys = body.messages?.[0]?.content || '';
     let reply = '翻译结果';
-    if (sys.includes('natural') || sys.includes('idiomatic')) reply = '这是更自然的版本';
-    else if (sys.includes('reply') || sys.includes('Reply')) reply = '好的，没问题';
+    if (sys.includes('reply') || sys.includes('Reply')) reply = '好的，没问题';
+    else if (sys.includes('natural') || sys.includes('idiomatic')) reply = '这是更自然的版本';
     else if (sys.includes('Respond with: ok') || sys.includes('ping')) reply = 'ok';
 
     await route.fulfill({

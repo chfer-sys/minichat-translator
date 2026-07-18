@@ -1,5 +1,9 @@
 // @ts-check
-const { defineConfig, devices } = require('@playwright/test');
+import { defineConfig, devices } from '@playwright/test';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
  * Playwright E2E config for MiniChat Translator.
@@ -20,7 +24,7 @@ const { defineConfig, devices } = require('@playwright/test');
  *
  *   npm run test:e2e
  */
-module.exports = defineConfig({
+export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
@@ -36,6 +40,12 @@ module.exports = defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    // Block service worker registration so fetches go through page.route
+    // mocks directly. The app's sw.js intercepts fetches in its own context,
+    // which bypasses Playwright's request interception.
+    contextOptions: {
+      serviceWorkers: 'block',
+    },
   },
 
   projects: [

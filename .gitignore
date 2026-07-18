@@ -23,3 +23,7 @@ node_modules/
 
 # Node / build
 dist/
+
+# Playwright
+/test-results/
+/playwright-report/
