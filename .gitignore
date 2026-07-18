@@ -19,3 +19,7 @@ deploy.sh
 
 # Defensive (no node yet)
 node_modules/
+.eslintcache
+
+# Node / build
+dist/
