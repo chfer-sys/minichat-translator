@@ -15,7 +15,13 @@
   <div class="container">
     <div class="header">
       <h1>MiniChat Translator</h1>
-      <button class="history-btn" id="historyBtn">History</button>
+      <div class="header-actions">
+        <button class="status-btn" id="statusBtn" title="Check API status">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">Check</span>
+        </button>
+        <button class="history-btn" id="historyBtn">History</button>
+      </div>
     </div>
     <p class="subtitle">Powered by MiniMax AI</p>
 
@@ -30,29 +36,66 @@
     </div>
 
     <div class="card">
-      <div class="lang-selector">
-        <button class="lang-btn active" data-dir="en-zh">EN → ZH</button>
-        <button class="lang-btn" data-dir="zh-en">ZH → EN</button>
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="translate">Translate</button>
+        <button class="mode-tab" data-mode="naturalize">Naturalize</button>
+        <button class="mode-tab" data-mode="reply">Reply Helper</button>
       </div>
 
-      <div class="input-wrap">
-        <textarea id="input" placeholder="Enter text to translate..."></textarea>
-        <span class="char-count" id="charCount">0 chars</span>
+      <div class="mode-panel" id="translatePanel">
+        <div class="lang-selector">
+          <button class="lang-btn active" data-dir="en-zh">EN → ZH</button>
+          <button class="lang-btn" data-dir="zh-en">ZH → EN</button>
+        </div>
+
+        <div class="input-wrap">
+          <textarea id="input" placeholder="Enter text to translate..."></textarea>
+          <span class="char-count" id="charCount">0 chars</span>
+        </div>
+
+        <button class="translate-btn" id="translateBtn">Translate</button>
+
+        <div class="output-wrap" id="outputWrap" style="display:none;">
+          <span class="output-label">Translation</span>
+          <button class="copy-btn" id="copyBtn">Copy</button>
+          <div class="output-text" id="output"></div>
+          <div id="pinyinSection" style="display:none;">
+            <button class="pinyin-toggle" id="pinyinToggle">Show Pinyin</button>
+            <div class="pinyin-text" id="pinyinText"></div>
+          </div>
+        </div>
+
+        <div class="error" id="error"></div>
       </div>
 
-      <button class="translate-btn" id="translateBtn">Translate</button>
-
-      <div class="output-wrap" id="outputWrap" style="display:none;">
-        <span class="output-label">Translation</span>
-        <button class="copy-btn" id="copyBtn">Copy</button>
-        <div class="output-text" id="output"></div>
-        <div id="pinyinSection" style="display:none;">
-          <button class="pinyin-toggle" id="pinyinToggle">Show Pinyin</button>
-          <div class="pinyin-text" id="pinyinText"></div>
+      <div class="mode-panel" id="naturalizePanel" style="display:none;">
+        <div class="input-wrap">
+          <textarea id="naturalizeInput" placeholder="Enter Chinese text to make more natural..."></textarea>
+        </div>
+        <button class="translate-btn" id="naturalizeBtn">Make Natural</button>
+        <div class="output-wrap" id="naturalizeOutputWrap" style="display:none;">
+          <span class="output-label">Natural Version</span>
+          <button class="copy-btn" id="naturalizeCopyBtn">Copy</button>
+          <div class="output-text" id="naturalizeOutput"></div>
         </div>
       </div>
 
-      <div class="error" id="error"></div>
+      <div class="mode-panel" id="replyPanel" style="display:none;">
+        <div class="input-wrap">
+          <label class="field-label" for="replyContext">Context (what they said)</label>
+          <textarea id="replyContext" placeholder="Paste the message you are replying to..."></textarea>
+        </div>
+        <div class="input-wrap">
+          <label class="field-label" for="replyIntent">What you want to say</label>
+          <textarea id="replyIntent" placeholder="Describe what you want to express..."></textarea>
+        </div>
+        <button class="translate-btn" id="replyBtn">Compose Reply</button>
+        <div class="output-wrap" id="replyOutputWrap" style="display:none;">
+          <span class="output-label">Suggested Reply</span>
+          <button class="copy-btn" id="replyCopyBtn">Copy</button>
+          <div class="output-text" id="replyOutput"></div>
+        </div>
+      </div>
     </div>
 
     <p class="pwa-note" id="pwaNote">Add to home screen for the full PWA experience</p>

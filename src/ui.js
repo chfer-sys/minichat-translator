@@ -9,6 +9,9 @@ import { loadPinyin } from './pinyin.js';
 import { copyToClipboard } from './clipboard.js';
 import { registerServiceWorker } from './sw-register.js';
 import { getHistory, saveHistory, addToHistory, exportHistoryCSV, renderHistoryHTML } from './history.js';
+import { checkHealth } from './health.js';
+import { naturalize } from './naturalize.js';
+import { composeReply } from './reply.js';
 
 /** @type {HTMLTextAreaElement} */
 let input;
@@ -46,6 +49,42 @@ let historyFooter;
 let clearHistoryBtn;
 /** @type {HTMLButtonElement} */
 let exportHistoryBtn;
+/** @type {HTMLButtonElement} */
+let statusBtn;
+/** @type {HTMLSpanElement} */
+let statusDot;
+/** @type {HTMLSpanElement} */
+let statusText;
+/** @type {NodeListOf<HTMLButtonElement>} */
+let modeTabs;
+/** @type {HTMLDivElement} */
+let translatePanel;
+/** @type {HTMLDivElement} */
+let naturalizePanel;
+/** @type {HTMLDivElement} */
+let replyPanel;
+/** @type {HTMLTextAreaElement} */
+let naturalizeInput;
+/** @type {HTMLButtonElement} */
+let naturalizeBtn;
+/** @type {HTMLDivElement} */
+let naturalizeOutputWrap;
+/** @type {HTMLDivElement} */
+let naturalizeOutput;
+/** @type {HTMLButtonElement} */
+let naturalizeCopyBtn;
+/** @type {HTMLTextAreaElement} */
+let replyContext;
+/** @type {HTMLTextAreaElement} */
+let replyIntent;
+/** @type {HTMLButtonElement} */
+let replyBtn;
+/** @type {HTMLDivElement} */
+let replyOutputWrap;
+/** @type {HTMLDivElement} */
+let replyOutput;
+/** @type {HTMLButtonElement} */
+let replyCopyBtn;
 
 /**
  * Cache all DOM references by id.
@@ -70,6 +109,24 @@ export function cacheElements() {
   historyFooter = document.getElementById('historyFooter');
   clearHistoryBtn = document.getElementById('clearHistoryBtn');
   exportHistoryBtn = document.getElementById('exportHistoryBtn');
+  statusBtn = document.getElementById('statusBtn');
+  statusDot = document.getElementById('statusDot');
+  statusText = document.getElementById('statusText');
+  modeTabs = document.querySelectorAll('.mode-tab');
+  translatePanel = document.getElementById('translatePanel');
+  naturalizePanel = document.getElementById('naturalizePanel');
+  replyPanel = document.getElementById('replyPanel');
+  naturalizeInput = document.getElementById('naturalizeInput');
+  naturalizeBtn = document.getElementById('naturalizeBtn');
+  naturalizeOutputWrap = document.getElementById('naturalizeOutputWrap');
+  naturalizeOutput = document.getElementById('naturalizeOutput');
+  naturalizeCopyBtn = document.getElementById('naturalizeCopyBtn');
+  replyContext = document.getElementById('replyContext');
+  replyIntent = document.getElementById('replyIntent');
+  replyBtn = document.getElementById('replyBtn');
+  replyOutputWrap = document.getElementById('replyOutputWrap');
+  replyOutput = document.getElementById('replyOutput');
+  replyCopyBtn = document.getElementById('replyCopyBtn');
 }
 
 /** PWA: hide install note if already installed */
@@ -286,11 +343,164 @@ export function handleCopyClick() {
   );
 }
 
+/** Status button click handler */
+export async function handleStatusClick() {
+  statusText.textContent = 'Checking…';
+  statusDot.className = 'status-dot checking';
+
+  try {
+    const result = await checkHealth();
+    if (result.ok) {
+      statusText.textContent = `Online · ${result.latencyMs}ms`;
+      statusDot.className = 'status-dot online';
+    } else {
+      statusText.textContent = 'Offline';
+      statusDot.className = 'status-dot offline';
+      statusBtn.title = result.error || '';
+    }
+  } catch {
+    statusText.textContent = 'Offline';
+    statusDot.className = 'status-dot offline';
+  }
+}
+
+/** Mode tab switcher */
+export function initModeTabs() {
+  modeTabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const mode = tab.dataset.mode;
+      modeTabs.forEach((t) => t.classList.remove('active'));
+      tab.classList.add('active');
+      translatePanel.style.display = mode === 'translate' ? 'block' : 'none';
+      naturalizePanel.style.display = mode === 'naturalize' ? 'block' : 'none';
+      replyPanel.style.display = mode === 'reply' ? 'block' : 'none';
+    });
+  });
+}
+
+/** Naturalize button click handler */
+export async function handleNaturalizeClick() {
+  const text = naturalizeInput.value.trim();
+  if (!text) return;
+  if (state.isTranslating) return; // guard against double-click
+
+  state.isTranslating = true;
+  naturalizeOutputWrap.style.display = 'none';
+  const originalText = naturalizeBtn.textContent;
+  naturalizeBtn.disabled = true;
+  naturalizeBtn.textContent = 'Naturalizing…';
+
+  let elapsed = 0;
+  const interval = setInterval(() => {
+    elapsed++;
+    naturalizeBtn.textContent = `Naturalizing… ${elapsed}s`;
+  }, 1000);
+
+  try {
+    const { result } = await naturalize(text);
+    naturalizeOutput.textContent = result;
+    naturalizeOutputWrap.style.display = 'block';
+  } catch (err) {
+    naturalizeOutput.textContent = 'Naturalization failed: ' + (err.message || 'Unknown error');
+    naturalizeOutputWrap.style.display = 'block';
+  } finally {
+    clearInterval(interval);
+    state.isTranslating = false;
+    naturalizeBtn.disabled = false;
+    naturalizeBtn.textContent = originalText;
+  }
+}
+
+/** Reply compose button click handler */
+export async function handleReplyClick() {
+  const context = replyContext.value.trim();
+  const intent = replyIntent.value.trim();
+  if (!context || !intent) return;
+  if (state.isTranslating) return; // guard against double-click
+
+  state.isTranslating = true;
+  replyOutputWrap.style.display = 'none';
+  const originalText = replyBtn.textContent;
+  replyBtn.disabled = true;
+  replyBtn.textContent = 'Composing…';
+
+  let elapsed = 0;
+  const interval = setInterval(() => {
+    elapsed++;
+    replyBtn.textContent = `Composing… ${elapsed}s`;
+  }, 1000);
+
+  try {
+    const { result } = await composeReply(context, intent);
+    replyOutput.textContent = result;
+    replyOutputWrap.style.display = 'block';
+  } catch (err) {
+    replyOutput.textContent = 'Failed to compose reply: ' + (err.message || 'Unknown error');
+    replyOutputWrap.style.display = 'block';
+  } finally {
+    clearInterval(interval);
+    state.isTranslating = false;
+    replyBtn.disabled = false;
+    replyBtn.textContent = originalText;
+  }
+}
+
+/** Copy handler for naturalize output */
+export function handleNaturalizeCopyClick() {
+  const text = naturalizeOutput.textContent;
+  if (!text) {
+    return;
+  }
+  copyToClipboard(
+    text,
+    () => {
+      naturalizeCopyBtn.textContent = 'Copied!';
+      naturalizeCopyBtn.classList.add('copied');
+      setTimeout(() => {
+        naturalizeCopyBtn.textContent = 'Copy';
+        naturalizeCopyBtn.classList.remove('copied');
+      }, 1500);
+    },
+    () => {},
+  );
+}
+
+/** Copy handler for reply output */
+export function handleReplyCopyClick() {
+  const text = replyOutput.textContent;
+  if (!text) {
+    return;
+  }
+  copyToClipboard(
+    text,
+    () => {
+      replyCopyBtn.textContent = 'Copied!';
+      replyCopyBtn.classList.add('copied');
+      setTimeout(() => {
+        replyCopyBtn.textContent = 'Copy';
+        replyCopyBtn.classList.remove('copied');
+      }, 1500);
+    },
+    () => {},
+  );
+}
+
+/** Initialize status button */
+function initStatusButton() {
+  statusBtn.addEventListener('click', handleStatusClick);
+  // Initial health check on load
+  handleStatusClick();
+}
+
 /** Wire all event listeners */
 function wireEvents() {
   translateBtn.addEventListener('click', handleTranslateClick);
   pinyinToggle.addEventListener('click', handlePinyinToggle);
   copyBtn.addEventListener('click', handleCopyClick);
+  naturalizeBtn.addEventListener('click', handleNaturalizeClick);
+  naturalizeCopyBtn.addEventListener('click', handleNaturalizeCopyClick);
+  replyBtn.addEventListener('click', handleReplyClick);
+  replyCopyBtn.addEventListener('click', handleReplyCopyClick);
 }
 
 /**
@@ -305,6 +515,21 @@ export function init() {
   initHistoryToggle();
   initClearHistory();
   initExportHistory();
+  initModeTabs();
   wireEvents();
+  initStatusButton();
   registerServiceWorker();
+}
+
+/**
+ * Boot — invoke init() in browser context only.
+ *
+ * Module scripts (`<script type="module">`) are deferred, so the DOM is
+ * fully parsed by the time this runs in a real browser. We guard by
+ * checking for an expected element so the auto-init does NOT fire when
+ * this module is imported by vitest tests (which set up their own DOM
+ * in beforeEach, AFTER the import has already executed).
+ */
+if (typeof document !== 'undefined' && document.getElementById('translateBtn')) {
+  init();
 }
