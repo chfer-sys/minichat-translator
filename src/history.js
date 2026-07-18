@@ -1,3 +1,6 @@
+import { formatRelativeTime } from './time.js';
+import { escapeHtml } from './escape.js';
+
 const STORAGE_KEY = 'minichat_history';
 const MAX_HISTORY = 50;
 
@@ -44,8 +47,8 @@ export function addToHistory(text, translation, direction) {
 }
 
 /**
- * Export history as a CSV Blob for download.
- * @returns {string} CSV content
+ * Export history as a CSV string.
+ * @returns {string} CSV content (empty string if no history)
  */
 export function exportHistoryCSV() {
   const history = getHistory();
@@ -66,20 +69,28 @@ export function exportHistoryCSV() {
 }
 
 /**
- * Trigger a CSV download of history.
- * Uses the browser's Blob + Object URL pattern.
+ * Render history items as an HTML string (pure — no DOM side-effects).
+ * @param {Array} items  history array from getHistory()
+ * @returns {string} HTML
  */
-export function downloadHistoryCSV() {
-  const csv = exportHistoryCSV();
-  if (!csv) {
-    alert('No history to export.');
-    return;
+export function renderHistoryHTML(items) {
+  if (items.length === 0) {
+    return '<div class="history-empty">No translation history yet</div>';
   }
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `minichat-translations-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  return items
+    .map((item) => {
+      const dirLabel = item.direction === 'en-zh' ? 'EN → ZH' : 'ZH → EN';
+      const relativeTime = formatRelativeTime(item.timestamp);
+      const escapedText = escapeHtml(item.text);
+      const escapedTranslation = escapeHtml(item.translation);
+      return `<div class="history-item" data-id="${item.id}">
+      <div class="history-item-header">
+        <span class="history-item-dir">${dirLabel}</span>
+        <span class="history-item-time">${relativeTime}</span>
+      </div>
+      <div class="history-item-source">${escapedText}</div>
+      <div class="history-item-translation">${escapedTranslation}</div>
+    </div>`;
+    })
+    .join('');
 }
