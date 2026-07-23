@@ -17,7 +17,7 @@ export async function composeReply(context, intent) {
       Authorization: 'Bearer ' + apiKey,
     },
     body: JSON.stringify({
-      model: 'opencode-go/deepseek-v4-flash',
+      model: 'deepseek-v4-flash',
       max_tokens: 2000,
       reasoning: { enable: false },
       messages: [
