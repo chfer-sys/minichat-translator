@@ -22,7 +22,7 @@ export async function checkHealth() {
         Authorization: 'Bearer ' + apiKey,
       },
       body: JSON.stringify({
-        model: 'MiniMax-M2.1',
+        model: 'opencode-go/deepseek-v4-flash',
         max_tokens: 10,
         messages: [
           { role: 'system', content: 'Respond with: ok' },

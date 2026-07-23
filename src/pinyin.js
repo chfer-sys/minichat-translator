@@ -1,5 +1,5 @@
 /**
- * Lazy pinyin toggle — fetches pinyin from MiniMax API on first activation.
+ * Lazy pinyin toggle — fetches pinyin from the translation API on first activation.
  * Phase 2: extracted from index.html inline script.
  */
 import { apiKey, baseUrl } from '../config.js';
@@ -16,7 +16,7 @@ export async function loadPinyin(chineseText) {
       Authorization: 'Bearer ' + apiKey,
     },
     body: JSON.stringify({
-      model: 'MiniMax-M2.1',
+      model: 'opencode-go/deepseek-v4-flash',
       reasoning: { enable: false },
       messages: [
         {

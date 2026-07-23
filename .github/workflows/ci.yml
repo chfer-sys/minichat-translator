@@ -33,7 +33,7 @@ jobs:
           cat > config.js <<'EOF'
           // CI stub — never committed. Real config.js is gitignored and lives on dev machines.
           export const apiKey = 'CI_STUB_KEY_NOT_REAL';
-          export const baseUrl = 'https://api.minimax.io/v1';
+          export const baseUrl = 'https://opencode.ai/zen/go/v1';
           EOF
 
       - name: Lint
