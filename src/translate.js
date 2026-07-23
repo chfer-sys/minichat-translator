@@ -1,5 +1,5 @@
 /**
- * MiniMax translation API call with elapsed timer.
+ * Translation API call with elapsed timer.
  * Phase 2: extracted from index.html inline script.
  */
 import { apiKey, baseUrl } from '../config.js';
@@ -25,7 +25,7 @@ export async function translate(text, direction) {
       Authorization: 'Bearer ' + apiKey,
     },
     body: JSON.stringify({
-      model: 'MiniMax-M2.1',
+      model: 'opencode-go/deepseek-v4-flash',
       max_tokens: 2000,
       reasoning: { enable: false },
       messages: [

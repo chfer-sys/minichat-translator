@@ -1,5 +1,5 @@
 /**
- * MiniMax naturalize API call.
+ * Naturalize API call.
  * Rewrites Chinese text to be more natural and idiomatic.
  */
 import { apiKey, baseUrl } from '../config.js';
@@ -16,7 +16,7 @@ export async function naturalize(text) {
       Authorization: 'Bearer ' + apiKey,
     },
     body: JSON.stringify({
-      model: 'MiniMax-M2.1',
+      model: 'opencode-go/deepseek-v4-flash',
       max_tokens: 2000,
       reasoning: { enable: false },
       messages: [

@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // Mock config.js before importing health.js
 vi.mock('../config.js', () => ({
   apiKey: 'test-key',
-  baseUrl: 'https://test.api.minimax.chat',
+  baseUrl: 'https://test.opencode.ai/zen/go/v1',
 }));
 
 describe('checkHealth', () => {
