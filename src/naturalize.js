@@ -34,8 +34,8 @@ export async function naturalize(text) {
 
   const data = await res.json();
   let result =
-    data.choices?.[0]?.message?.reasoning_content?.trim() ||
     data.choices?.[0]?.message?.content?.trim() ||
+    data.choices?.[0]?.message?.reasoning_content?.trim() ||
     '';
   result = result.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
   return { result };

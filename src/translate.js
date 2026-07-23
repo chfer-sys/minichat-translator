@@ -42,8 +42,8 @@ export async function translate(text, direction) {
 
   const data = await res.json();
   let translation =
-    data.choices?.[0]?.message?.reasoning_content?.trim() ||
     data.choices?.[0]?.message?.content?.trim() ||
+    data.choices?.[0]?.message?.reasoning_content?.trim() ||
     '';
   translation = translation.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
   return { translation };

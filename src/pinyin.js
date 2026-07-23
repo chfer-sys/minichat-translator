@@ -30,8 +30,8 @@ export async function loadPinyin(chineseText) {
   });
   const data = await res.json();
   return (
-    data.choices?.[0]?.message?.reasoning_content?.trim() ||
     data.choices?.[0]?.message?.content?.trim() ||
+    data.choices?.[0]?.message?.reasoning_content?.trim() ||
     ''
   );
 }
