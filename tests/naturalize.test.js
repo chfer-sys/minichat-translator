@@ -27,7 +27,7 @@ describe('naturalize', () => {
     expect(opts.method).toBe('POST');
     const messages = JSON.parse(opts.body).messages;
     expect(messages[0].role).toBe('system');
-    expect(messages[0].content).toContain('Chinese editor');
+    expect(messages[0].content).toContain('Chinese editing API');
     expect(messages[0].content).toContain('natural');
     expect(messages[1].content).toBe('你好呀');
   });

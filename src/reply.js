@@ -19,12 +19,11 @@ export async function composeReply(context, intent) {
     body: JSON.stringify({
       model: 'deepseek-v4-flash',
       max_tokens: 2000,
-      reasoning: { enable: false },
       messages: [
         {
           role: 'system',
           content:
-            'You are helping the user reply to a message. The user provides the message they received (context) and what they want to say (intent). Write a natural, casual reply in the same language as the context that conveys the intent. Only output the reply, no explanation. If the context is in Chinese, reply in Chinese. If the context is in English, reply in English.',
+            'You are a reply API. Using the context and intent, write a short natural reply in the SAME language as the context. Reply with ONLY the reply.',
         },
         { role: 'user', content: `Context: ${context}\n\nIntent: ${intent}` },
       ],

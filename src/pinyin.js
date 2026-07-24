@@ -17,12 +17,11 @@ export async function loadPinyin(chineseText) {
     },
     body: JSON.stringify({
       model: 'deepseek-v4-flash',
-      reasoning: { enable: false },
       messages: [
         {
           role: 'system',
           content:
-            'Convert the Chinese text to casual pinyin (romanized Chinese) like texting. Use spaces. Only output the pinyin.',
+            'You are a pinyin API. Convert the Chinese text to spaced pinyin. Reply with ONLY the pinyin.',
         },
         { role: 'user', content: chineseText },
       ],

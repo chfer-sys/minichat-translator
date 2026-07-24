@@ -18,12 +18,11 @@ export async function naturalize(text) {
     body: JSON.stringify({
       model: 'deepseek-v4-flash',
       max_tokens: 2000,
-      reasoning: { enable: false },
       messages: [
         {
           role: 'system',
           content:
-            'You are an expert Chinese editor. Rewrite the user\'s Chinese text to be more natural, idiomatic, and conversational — like a native speaker texting a friend. Preserve the original meaning. Only output the rewritten Chinese, no explanation.',
+            'You are a Chinese editing API. Rewrite the text to be more natural and conversational, preserving the original meaning. Reply with ONLY the rewritten Chinese.',
         },
         { role: 'user', content: text },
       ],
