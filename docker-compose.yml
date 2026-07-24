@@ -9,3 +9,12 @@ services:
       - .:/usr/share/nginx/html:ro
     environment:
       - TZ=America/New_York
+
+  minichat-proxy:
+    build: ./proxy
+    container_name: minichat-proxy
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - OPENCODE_GO_API_KEY=${OPENCODE_GO_API_KEY}

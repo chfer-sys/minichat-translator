@@ -13,11 +13,8 @@ import { state } from './state.js';
 export async function translate(text, direction) {
   const sourceLang = direction === 'en-zh' ? 'English' : 'Chinese';
   const targetLang = direction === 'en-zh' ? 'Chinese' : 'English';
-  const styleHint =
-    direction === 'en-zh'
-      ? 'Write natural, casual Chinese like texting - use slang, abbreviations, emojis if fitting.'
-      : 'Write natural, casual English like texting - use slang, abbreviations.';
-
+  // NOTE: this gateway ignores reasoning-control params (reasoning_effort /
+  // reasoning.enable), so latency is controlled via a terse prompt instead.
   const res = await fetch(baseUrl + '/chat/completions', {
     method: 'POST',
     headers: {
@@ -25,13 +22,12 @@ export async function translate(text, direction) {
       Authorization: 'Bearer ' + apiKey,
     },
     body: JSON.stringify({
-      model: 'opencode-go/deepseek-v4-flash',
+      model: 'deepseek-v4-flash',
       max_tokens: 2000,
-      reasoning: { enable: false },
       messages: [
         {
           role: 'system',
-          content: `Translate ${sourceLang} to ${targetLang}. ${styleHint} Only output the translation.`,
+          content: `You are a translation API. Translate ${sourceLang} to ${targetLang}. Reply with ONLY the translation — no notes, no pinyin, no explanation.`,
         },
         { role: 'user', content: text },
       ],
@@ -42,8 +38,8 @@ export async function translate(text, direction) {
 
   const data = await res.json();
   let translation =
-    data.choices?.[0]?.message?.reasoning_content?.trim() ||
     data.choices?.[0]?.message?.content?.trim() ||
+    data.choices?.[0]?.message?.reasoning_content?.trim() ||
     '';
   translation = translation.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
   return { translation };

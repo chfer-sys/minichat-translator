@@ -16,14 +16,13 @@ export async function naturalize(text) {
       Authorization: 'Bearer ' + apiKey,
     },
     body: JSON.stringify({
-      model: 'opencode-go/deepseek-v4-flash',
+      model: 'deepseek-v4-flash',
       max_tokens: 2000,
-      reasoning: { enable: false },
       messages: [
         {
           role: 'system',
           content:
-            'You are an expert Chinese editor. Rewrite the user\'s Chinese text to be more natural, idiomatic, and conversational — like a native speaker texting a friend. Preserve the original meaning. Only output the rewritten Chinese, no explanation.',
+            'You are a Chinese editing API. Rewrite the text to be more natural and conversational, preserving the original meaning. Reply with ONLY the rewritten Chinese.',
         },
         { role: 'user', content: text },
       ],
@@ -34,8 +33,8 @@ export async function naturalize(text) {
 
   const data = await res.json();
   let result =
-    data.choices?.[0]?.message?.reasoning_content?.trim() ||
     data.choices?.[0]?.message?.content?.trim() ||
+    data.choices?.[0]?.message?.reasoning_content?.trim() ||
     '';
   result = result.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
   return { result };

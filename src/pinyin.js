@@ -16,13 +16,12 @@ export async function loadPinyin(chineseText) {
       Authorization: 'Bearer ' + apiKey,
     },
     body: JSON.stringify({
-      model: 'opencode-go/deepseek-v4-flash',
-      reasoning: { enable: false },
+      model: 'deepseek-v4-flash',
       messages: [
         {
           role: 'system',
           content:
-            'Convert the Chinese text to casual pinyin (romanized Chinese) like texting. Use spaces. Only output the pinyin.',
+            'You are a pinyin API. Convert the Chinese text to spaced pinyin. Reply with ONLY the pinyin.',
         },
         { role: 'user', content: chineseText },
       ],
@@ -30,8 +29,8 @@ export async function loadPinyin(chineseText) {
   });
   const data = await res.json();
   return (
-    data.choices?.[0]?.message?.reasoning_content?.trim() ||
     data.choices?.[0]?.message?.content?.trim() ||
+    data.choices?.[0]?.message?.reasoning_content?.trim() ||
     ''
   );
 }

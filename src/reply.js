@@ -17,14 +17,13 @@ export async function composeReply(context, intent) {
       Authorization: 'Bearer ' + apiKey,
     },
     body: JSON.stringify({
-      model: 'opencode-go/deepseek-v4-flash',
+      model: 'deepseek-v4-flash',
       max_tokens: 2000,
-      reasoning: { enable: false },
       messages: [
         {
           role: 'system',
           content:
-            'You are helping the user reply to a message. The user provides the message they received (context) and what they want to say (intent). Write a natural, casual reply in the same language as the context that conveys the intent. Only output the reply, no explanation. If the context is in Chinese, reply in Chinese. If the context is in English, reply in English.',
+            'You are a reply API. Using the context and intent, write a short natural reply in the SAME language as the context. Reply with ONLY the reply.',
         },
         { role: 'user', content: `Context: ${context}\n\nIntent: ${intent}` },
       ],
@@ -35,8 +34,8 @@ export async function composeReply(context, intent) {
 
   const data = await res.json();
   let result =
-    data.choices?.[0]?.message?.reasoning_content?.trim() ||
     data.choices?.[0]?.message?.content?.trim() ||
+    data.choices?.[0]?.message?.reasoning_content?.trim() ||
     '';
   result = result.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
   return { result };
