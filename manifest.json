@@ -1,11 +1,11 @@
 {
-  "name": "MiniChat Translator",
-  "short_name": "Translator",
-  "description": "AI-powered EN↔ZH translator powered by MiniMax",
+  "name": "PERSONA — Talk with intention",
+  "short_name": "PERSONA",
+  "description": "A private, local-first language and conversation companion.",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#6366f1",
+  "background_color": "#f6f5f1",
+  "theme_color": "#f6f5f1",
   "icons": [
     {
       "src": "icon-192.png",

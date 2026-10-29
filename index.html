@@ -1,106 +1,80 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MiniChat Translator</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#6366f1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f5f1">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>PERSONA — Talk with intention</title>
+  <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="/src/styles.css">
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>MiniChat Translator</h1>
-      <div class="header-actions">
-        <button class="status-btn" id="statusBtn" title="Check API status">
-          <span class="status-dot" id="statusDot"></span>
-          <span id="statusText">Check</span>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#chat" aria-label="PERSONA home"><span class="brand-mark">P</span><span>PERSONA</span></a>
+      <div class="header-right"><span class="local-badge"><span class="local-dot"></span> Saved on device</span>
+        <button class="status-btn" id="statusBtn" title="Check API status" aria-label="Check API connection">
+          <span class="status-dot" id="statusDot"></span><span id="statusText">Checking</span>
         </button>
-        <button class="history-btn" id="historyBtn">History</button>
       </div>
-    </div>
-    <p class="subtitle">Powered by DeepSeek V4 Flash</p>
+    </header>
 
-    <!-- History Panel -->
-    <div class="history-panel" id="historyPanel">
-      <div class="history-list" id="historyList"></div>
-      <div class="history-footer" id="historyFooter" style="display:none;">
-        <button class="history-export-btn" id="exportHistoryBtn" style="background:none;border:none;color:var(--accent);font-size:0.8125rem;cursor:pointer;opacity:0.8;transition:opacity 0.2s;">Export CSV</button>
-        <span style="color:var(--border);margin:0 0.5rem;">|</span>
-        <button class="history-clear-btn" id="clearHistoryBtn">Clear all history</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="mode-tabs">
-        <button class="mode-tab active" data-mode="translate">Translate</button>
-        <button class="mode-tab" data-mode="naturalize">Naturalize</button>
-        <button class="mode-tab" data-mode="reply">Reply Helper</button>
-      </div>
-
-      <div class="mode-panel" id="translatePanel">
-        <div class="lang-selector">
-          <button class="lang-btn active" data-dir="en-zh">EN → ZH</button>
-          <button class="lang-btn" data-dir="zh-en">ZH → EN</button>
+    <main>
+      <section class="view active" id="chatView" aria-labelledby="chatTitle">
+        <div class="view-heading"><div><p class="eyebrow">YOUR CONVERSATIONS</p><h1 id="chatTitle">Chat</h1></div><button class="icon-button context-open" id="openContext" aria-label="Inspect context" title="Context layers">☷</button></div>
+        <div class="profile-tabs" id="chatProfileTabs" aria-label="Choose profile"></div>
+        <div class="chat-card">
+          <div class="conversation-header"><div class="avatar" id="chatAvatar">✦</div><div class="conversation-identity"><strong id="chatProfileName">No profile selected</strong><span id="chatProfileMeta">Create a profile to begin</span></div><span class="online-presence"><i></i> local</span></div>
+          <div class="context-strip"><span>CONTEXT READY</span><span id="contextSummary">Profile · Preferences · Recent chat</span><button class="text-button context-open">Review</button></div>
+          <div class="messages" id="messages" aria-live="polite"><div class="empty-chat"><div class="empty-art">✳</div><strong>Your conversations, with context.</strong><span>Choose a profile and start a thoughtful chat.</span></div></div>
+          <div class="attachment-preview" id="attachmentPreview"></div>
+          <div class="chat-compose"><textarea id="chatInput" rows="1" maxlength="2000" placeholder="Write a message…" aria-label="Message"></textarea><div class="compose-actions"><div><button class="tool-button" id="attachImage" title="Attach an image" aria-label="Attach image">＋</button><input id="imageInput" type="file" accept="image/*" hidden><span class="compose-hint">Context is assembled before every reply</span></div><button class="send-button" id="sendMessage" aria-label="Send message">↑</button></div></div>
+          <p class="chat-error" id="chatError" role="status"></p>
         </div>
+        <p class="privacy-note"><span>⌑</span> Your profiles and chats stay on this device. Only AI requests leave your device.</p>
+      </section>
 
-        <div class="input-wrap">
-          <textarea id="input" placeholder="Enter text to translate..."></textarea>
-          <span class="char-count" id="charCount">0 chars</span>
+      <section class="view" id="translateView" aria-labelledby="translateTitle">
+        <div class="view-heading"><div><p class="eyebrow">SAY IT NATURALLY</p><h1 id="translateTitle">Translator</h1></div><span class="language-chip">EN <span>↔</span> <select id="targetLanguage" aria-label="Target language"><option value="Chinese">中文</option><option value="Japanese">日本語</option></select></span></div>
+        <div class="translator-card">
+          <div class="lang-selector"><button class="lang-btn active" data-dir="en-zh">English → <span class="target-label">Chinese</span></button><button class="lang-btn" data-dir="zh-en"><span class="target-label">Chinese</span> → English</button></div>
+          <div class="input-wrap"><textarea id="input" placeholder="Type what you want to say…" aria-label="Text to translate"></textarea><span class="char-count" id="charCount">0 chars</span></div>
+          <div class="translator-tools"><button class="tool-button" id="voiceInput" aria-label="Speak text">◖</button><span>Speak or type a message</span><button class="tool-button" id="clearTranslation" aria-label="Clear text">×</button></div>
+          <button class="translate-btn" id="translateBtn">Translate <span>↗</span></button>
+          <div class="output-wrap" id="outputWrap" style="display:none"><div class="output-heading"><span class="output-label">NATURAL TRANSLATION</span><div><button class="copy-btn" id="copyBtn">Copy</button><button class="speak-button" id="speakOutput" aria-label="Read translation aloud">◖</button></div></div><div class="output-text" id="output"></div><div class="pronunciation" id="pinyinSection" style="display:none"><div class="pronunciation-heading"><span id="pronunciationLabel">PINYIN</span><button class="pinyin-toggle" id="pinyinToggle">Show</button></div><div class="pinyin-text" id="pinyinText"></div></div></div>
+          <div class="error" id="error" role="status"></div>
         </div>
+        <details class="legacy-tools"><summary>Naturalize · Reply helper · History</summary><div class="mode-tabs"><button class="mode-tab active" data-mode="translate">Translate</button><button class="mode-tab" data-mode="naturalize">Naturalize</button><button class="mode-tab" data-mode="reply">Reply helper</button></div>
+          <div class="mode-panel" id="translatePanel"></div>
+          <div class="mode-panel" id="naturalizePanel" style="display:none"><div class="input-wrap"><textarea id="naturalizeInput" placeholder="Enter Chinese text to make more natural…"></textarea></div><button class="translate-btn" id="naturalizeBtn">Make natural</button><div class="output-wrap" id="naturalizeOutputWrap" style="display:none"><span class="output-label">NATURAL VERSION</span><button class="copy-btn" id="naturalizeCopyBtn">Copy</button><div class="output-text" id="naturalizeOutput"></div></div></div>
+          <div class="mode-panel" id="replyPanel" style="display:none"><div class="input-wrap"><label class="field-label" for="replyContext">Context</label><textarea id="replyContext" placeholder="Paste the message you are replying to…"></textarea></div><div class="input-wrap"><label class="field-label" for="replyIntent">What you want to say</label><textarea id="replyIntent" placeholder="Describe what you want to express…"></textarea></div><button class="translate-btn" id="replyBtn">Compose reply</button><div class="output-wrap" id="replyOutputWrap" style="display:none"><span class="output-label">SUGGESTED REPLY</span><button class="copy-btn" id="replyCopyBtn">Copy</button><div class="output-text" id="replyOutput"></div></div></div>
+        </details>
+        <div class="history-area"><button class="history-btn" id="historyBtn">◷ &nbsp; Translation history</button><div class="history-panel" id="historyPanel"><div class="history-list" id="historyList"></div><div class="history-footer" id="historyFooter" style="display:none"><button class="history-export-btn" id="exportHistoryBtn">Export CSV</button><span>·</span><button class="history-clear-btn" id="clearHistoryBtn">Clear history</button></div></div></div>
+      </section>
 
-        <button class="translate-btn" id="translateBtn">Translate</button>
+      <section class="view" id="profilesView" aria-labelledby="profilesTitle">
+        <div class="view-heading"><div><p class="eyebrow">PEOPLE, NOT PROMPTS</p><h1 id="profilesTitle">Profiles</h1></div><button class="primary-small" id="addProfile">＋ New profile</button></div>
+        <p class="section-intro">Keep the details that help you understand each person and communicate with care.</p>
+        <div class="profile-list" id="profileList"></div>
+      </section>
 
-        <div class="output-wrap" id="outputWrap" style="display:none;">
-          <span class="output-label">Translation</span>
-          <button class="copy-btn" id="copyBtn">Copy</button>
-          <div class="output-text" id="output"></div>
-          <div id="pinyinSection" style="display:none;">
-            <button class="pinyin-toggle" id="pinyinToggle">Show Pinyin</button>
-            <div class="pinyin-text" id="pinyinText"></div>
-          </div>
-        </div>
+      <section class="view" id="settingsView" aria-labelledby="settingsTitle">
+        <div class="view-heading"><div><p class="eyebrow">YOUR EXPERIENCE</p><h1 id="settingsTitle">Settings</h1></div></div>
+        <div class="settings-card"><p class="eyebrow">AI RESPONSE LANGUAGE</p><h2>Practice at your pace</h2><p>Choose the language PERSONA uses when it replies.</p><div class="choice-row" role="group" aria-label="AI response language"><button class="choice-button active" data-response-language="English">English <span>Clear explanations</span></button><button class="choice-button" data-response-language="Target language">Target <span>Immersive practice</span></button></div></div>
+        <div class="settings-card"><p class="eyebrow">DEFAULT TONE</p><h2>How should it sound?</h2><div class="tone-options"><button class="tone-chip active" data-tone="Friendly">☀ Friendly</button><button class="tone-chip" data-tone="Warm">♡ Warm</button><button class="tone-chip" data-tone="Flirty">✦ Flirty</button><button class="tone-chip" data-tone="Professional">◈ Professional</button><button class="tone-chip" data-tone="Direct">↗ Direct</button></div></div>
+        <div class="settings-card context-settings"><p class="eyebrow">DETERMINISTIC CONTEXT</p><h2>Context layers</h2><p>These ordered inputs are assembled the same way before each AI call.</p><label class="toggle-row"><span><b>Profile details</b><small>Relationship and personal notes</small></span><input type="checkbox" data-context-layer="profile" checked></label><label class="toggle-row"><span><b>Recent conversation</b><small>Last 12 messages, in order</small></span><input type="checkbox" data-context-layer="history" checked></label><label class="toggle-row"><span><b>Response preferences</b><small>Language and tone</small></span><input type="checkbox" data-context-layer="preferences" checked></label></div>
+        <div class="settings-card"><div class="storage-heading"><div><p class="eyebrow">LOCAL DATA</p><h2>Private by default</h2><p id="storageSummary">Profiles and conversations are saved on this device.</p></div><span class="lock-icon">⌑</span></div><div class="data-actions"><button class="secondary-button" id="exportData">Export backup</button><button class="secondary-button danger-text" id="clearData">Clear local data</button></div></div>
+        <div class="settings-foot"><span class="local-dot"></span> No account. No cloud sync. API requests only when you ask for AI.</div>
+      </section>
+    </main>
 
-        <div class="error" id="error"></div>
-      </div>
-
-      <div class="mode-panel" id="naturalizePanel" style="display:none;">
-        <div class="input-wrap">
-          <textarea id="naturalizeInput" placeholder="Enter Chinese text to make more natural..."></textarea>
-        </div>
-        <button class="translate-btn" id="naturalizeBtn">Make Natural</button>
-        <div class="output-wrap" id="naturalizeOutputWrap" style="display:none;">
-          <span class="output-label">Natural Version</span>
-          <button class="copy-btn" id="naturalizeCopyBtn">Copy</button>
-          <div class="output-text" id="naturalizeOutput"></div>
-        </div>
-      </div>
-
-      <div class="mode-panel" id="replyPanel" style="display:none;">
-        <div class="input-wrap">
-          <label class="field-label" for="replyContext">Context (what they said)</label>
-          <textarea id="replyContext" placeholder="Paste the message you are replying to..."></textarea>
-        </div>
-        <div class="input-wrap">
-          <label class="field-label" for="replyIntent">What you want to say</label>
-          <textarea id="replyIntent" placeholder="Describe what you want to express..."></textarea>
-        </div>
-        <button class="translate-btn" id="replyBtn">Compose Reply</button>
-        <div class="output-wrap" id="replyOutputWrap" style="display:none;">
-          <span class="output-label">Suggested Reply</span>
-          <button class="copy-btn" id="replyCopyBtn">Copy</button>
-          <div class="output-text" id="replyOutput"></div>
-        </div>
-      </div>
-    </div>
-
-    <p class="pwa-note" id="pwaNote">Add to home screen for the full PWA experience</p>
+    <nav class="bottom-nav" aria-label="Main navigation"><button class="nav-item active" data-view="chat"><span>◌</span>Chat</button><button class="nav-item" data-view="translate"><span>⇄</span>Translate</button><button class="nav-item" data-view="profiles"><span>♙</span>Profiles</button><button class="nav-item" data-view="settings"><span>⚙</span>Settings</button></nav>
+    <div class="context-backdrop" id="contextBackdrop"></div><aside class="context-sheet" id="contextSheet" aria-labelledby="contextTitle" aria-modal="true" role="dialog"><div class="sheet-handle"></div><div class="sheet-header"><div><p class="eyebrow">BEFORE EVERY RESPONSE</p><h2 id="contextTitle">Context layers</h2></div><button class="icon-button" id="closeContext" aria-label="Close context">×</button></div><p class="sheet-intro">The same ordered inputs are sent for the same conversation state. No hidden summaries.</p><div id="contextLayers"></div><div class="context-hash"><span>CONTEXT FINGERPRINT</span><code id="contextHash">Waiting for a profile</code></div></aside>
+    <div class="context-backdrop" id="profileBackdrop"></div><div class="profile-form-card" id="profileFormCard" hidden role="dialog" aria-modal="true" aria-labelledby="profileFormTitle"><div class="form-header"><div><p class="eyebrow">PROFILE DETAILS</p><h2 id="profileFormTitle">New profile</h2></div><button class="icon-button" id="closeProfileForm" aria-label="Close">×</button></div><form id="profileForm"><input type="hidden" id="profileId"><label>Name<input id="profileName" maxlength="60" placeholder="e.g. Aiko" required></label><div class="form-row"><label>Native language<select id="profileNative"><option>Japanese</option><option>Chinese</option><option>English</option></select></label><label>Target language<select id="profileTarget"><option>Japanese</option><option>Chinese</option><option>English</option></select></label></div><label>How you know them<input id="profileRelationship" maxlength="120" placeholder="e.g. Met at a design conference"></label><label>Useful context<textarea id="profileNotes" rows="3" maxlength="1200" placeholder="Interests, preferences, things to remember…"></textarea></label><label>Conversation tone<select id="profileTone"><option>Friendly</option><option>Warm</option><option>Flirty</option><option>Professional</option><option>Direct</option></select></label><div class="form-actions"><button type="button" class="secondary-button" id="cancelProfile">Cancel</button><button type="submit" class="primary-button">Save profile</button></div></form></div>
+    <p class="pwa-note hidden" id="pwaNote">Add to home screen for the full experience</p>
   </div>
-
   <script type="module" src="/src/ui.js"></script>
 </body>
 </html>

@@ -12,6 +12,7 @@ import { getHistory, saveHistory, addToHistory, exportHistoryCSV, renderHistoryH
 import { checkHealth } from './health.js';
 import { naturalize } from './naturalize.js';
 import { composeReply } from './reply.js';
+import { initPersona, applyTargetLanguage } from './persona.js';
 
 /** @type {HTMLTextAreaElement} */
 let input;
@@ -246,6 +247,8 @@ export function loadHistoryItem(item) {
   langBtns.forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.dir === item.direction);
   });
+  // Legacy entries carry no targetLanguage: keep whatever is selected now.
+  if (item.targetLanguage) applyTargetLanguage(item.targetLanguage);
   input.value = item.text;
   charCount.textContent = `${item.text.length} char${item.text.length !== 1 ? 's' : ''}`;
   state.lastSourceText = item.text;
@@ -272,17 +275,19 @@ export async function handleTranslateClick() {
   translateBtn.disabled = true;
 
   try {
-    const { translation } = await translate(text, state.currentDir);
+    const targetLanguage = document.getElementById('targetLanguage')?.value || 'Chinese';
+    const { translation } = await translate(text, state.currentDir, targetLanguage);
     state.lastTranslation = translation;
     state.lastSourceText = text;
     output.textContent = translation;
     outputWrap.style.display = 'block';
 
-    addToHistory(text, translation, state.currentDir);
+    addToHistory(text, translation, state.currentDir, targetLanguage);
 
-    if (state.currentDir === 'zh-en') {
+    if (state.currentDir === 'en-zh') {
       pinyinSection.style.display = 'block';
-      pinyinToggle.textContent = 'Show Pinyin';
+      document.getElementById('pronunciationLabel').textContent = targetLanguage === 'Japanese' ? 'ROMAJI' : 'PINYIN';
+      pinyinToggle.textContent = targetLanguage === 'Japanese' ? 'Show romaji' : 'Show pinyin';
       pinyinText.style.display = 'none';
       state.pinyinLoaded = false;
     }
@@ -302,20 +307,21 @@ export async function handlePinyinToggle() {
     if (!state.pinyinLoaded) {
       pinyinToggle.textContent = 'Loading...';
       try {
-        const pinyin = await loadPinyin(state.lastTranslation);
+        const targetLanguage = document.getElementById('targetLanguage')?.value || 'Chinese';
+        const pinyin = await loadPinyin(state.lastTranslation, targetLanguage);
         pinyinText.textContent = pinyin;
         state.pinyinLoaded = true;
       } catch {
         pinyinText.textContent = '(failed to load pinyin)';
       }
-      pinyinToggle.textContent = 'Hide Pinyin';
+      pinyinToggle.textContent = 'Hide';
       pinyinText.style.display = 'block';
     } else {
-      pinyinToggle.textContent = 'Hide Pinyin';
+      pinyinToggle.textContent = 'Hide';
       pinyinText.style.display = 'block';
     }
   } else {
-    pinyinToggle.textContent = 'Show Pinyin';
+    pinyinToggle.textContent = document.getElementById('targetLanguage')?.value === 'Japanese' ? 'Show romaji' : 'Show pinyin';
     pinyinText.style.display = 'none';
   }
 }
@@ -519,6 +525,7 @@ export function init() {
   wireEvents();
   initStatusButton();
   registerServiceWorker();
+  initPersona();
 }
 
 /**

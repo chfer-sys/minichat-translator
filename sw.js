@@ -1,4 +1,4 @@
-const CACHE = 'minichat-translator-v2';
+const CACHE = 'persona-v3';
 
 const ASSETS = [
   './',
@@ -26,8 +26,9 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Fetch: network-first, fall back to cache
+// Fetch: network-first, fall back to cache (GET only — never cache POST/API calls)
 self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
   e.respondWith(
     fetch(e.request)
       .then(res => {

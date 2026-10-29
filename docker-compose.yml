@@ -1,20 +1,32 @@
+# Coolify deployment: ONE compose app, two services.
+#   web   — static nginx frontend, published on host port 8081
+#   proxy — internal-only Node proxy holding OPENCODE_GO_API_KEY (no host port)
+# The browser only talks same-origin /api; nginx strips the prefix and
+# forwards to the proxy, which injects the key server-side.
+
 services:
-  minichat-translator:
-    image: nginx:alpine
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        # Baked into the generated config.js at build time (same-origin).
+        API_BASE_URL: /api
     container_name: minichat-translator
     restart: unless-stopped
     ports:
       - "8081:80"
-    volumes:
-      - .:/usr/share/nginx/html:ro
     environment:
       - TZ=America/New_York
+    depends_on:
+      - proxy
 
-  minichat-proxy:
+  proxy:
     build: ./proxy
     container_name: minichat-proxy
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    # Reachable only inside the compose network — never published to the host.
+    expose:
+      - "3000"
     environment:
-      - OPENCODE_GO_API_KEY=${OPENCODE_GO_API_KEY}
+      - OPENCODE_GO_API_KEY=${OPENCODE_GO_API_KEY:?set OPENCODE_GO_API_KEY in the Coolify environment}

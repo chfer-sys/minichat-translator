@@ -13,6 +13,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  *   resolves exactly as it does in production.
  * - All API calls are mocked inside the spec via `page.route()` — the webServer
  *   never proxies to the real MiniMax API, so tests are deterministic and free.
+ * - Port 4173 (not the common vite default 5173) with `reuseExistingServer: false`
+ *   so the suite can never silently attach to an unrelated dev server that happens
+ *   to be listening on localhost (a TCG app on 5173 once bit us here).
  *
  * Run locally (the project standard) inside a throwaway container:
  *
@@ -35,7 +38,7 @@ export default defineConfig({
   expect: { timeout: 5_000 },
 
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:4173',
     headless: true,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
@@ -58,10 +61,12 @@ export default defineConfig({
   webServer: {
     // `serve` is a zero-config static file server that handles SPA fallback
     // and correct MIME types for ES modules out of the box.
-    // Fallback: `python3 -m http.server 5173` also works.
-    command: 'npx --yes serve -s . -l 5173',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    // Fallback: `python3 -m http.server 4173` also works.
+    command: 'npx --yes serve -s . -l 4173',
+    url: 'http://localhost:4173',
+    // Never reuse a pre-existing listener: if anything else (e.g. an unrelated
+    // dev server) already holds port 4173, fail loudly instead of testing it.
+    reuseExistingServer: false,
     timeout: 60_000,
     cwd: __dirname,
   },

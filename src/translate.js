@@ -8,11 +8,12 @@ import { state } from './state.js';
 /**
  * @param {string} text
  * @param {string} direction  'en-zh' | 'zh-en'
+ * @param {string} targetLanguage  Target language for English-to-X translation
  * @returns {Promise<{ translation: string, reasoning?: string }>}
  */
-export async function translate(text, direction) {
-  const sourceLang = direction === 'en-zh' ? 'English' : 'Chinese';
-  const targetLang = direction === 'en-zh' ? 'Chinese' : 'English';
+export async function translate(text, direction, targetLanguage = 'Chinese') {
+  const sourceLang = direction === 'en-zh' ? 'English' : targetLanguage;
+  const targetLang = direction === 'en-zh' ? targetLanguage : 'English';
   // NOTE: this gateway ignores reasoning-control params (reasoning_effort /
   // reasoning.enable), so latency is controlled via a terse prompt instead.
   const res = await fetch(baseUrl + '/chat/completions', {

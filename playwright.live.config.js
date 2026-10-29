@@ -1,7 +1,7 @@
 // @ts-check
 import { defineConfig, devices } from '@playwright/test';
 
-// LIVE verification config — runs against the DEPLOYED app on 192.168.100.101.
+// LIVE verification config — runs against the DEPLOYED app on 192.168.100.104:8081.
 // No webServer, no API mocking. Proves the real browser -> minichat-proxy ->
 // opencode.ai chain works end-to-end (CORS, model id, key, content extraction).
 //
@@ -16,7 +16,7 @@ export default defineConfig({
   timeout: 90_000,
   expect: { timeout: 20_000 },
   use: {
-    baseURL: 'http://192.168.100.101:8081',
+    baseURL: process.env.LIVE_BASE_URL || 'http://192.168.100.104:8081',
     headless: true,
     trace: 'retain-on-failure',
     contextOptions: { serviceWorkers: 'block' },

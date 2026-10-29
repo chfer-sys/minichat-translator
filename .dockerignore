@@ -1,0 +1,24 @@
+# Build context for docker/Dockerfile (the web image). docker-compose's web
+# service builds from the repo root, so keep the context small for Coolify
+# uploads and make sure nothing secret can ever land in the image.
+
+.git
+.github
+.agents
+.specs
+graft
+node_modules
+tests
+e2e
+e2e-live
+test-results
+playwright-report
+proxy
+.env
+.env.*
+.coolify.env
+config.js
+*.md
+.DS_Store
+deploy.sh
+deploy.sh.example

@@ -5,10 +5,11 @@
 import { apiKey, baseUrl } from '../config.js';
 
 /**
- * @param {string} chineseText
- * @returns {Promise<string>} pinyin romanization
+ * @param {string} text
+ * @param {string} language
+ * @returns {Promise<string>} pinyin or romaji romanization
  */
-export async function loadPinyin(chineseText) {
+export async function loadPinyin(text, language = 'Chinese') {
   const res = await fetch(baseUrl + '/chat/completions', {
     method: 'POST',
     headers: {
@@ -21,9 +22,11 @@ export async function loadPinyin(chineseText) {
         {
           role: 'system',
           content:
-            'You are a pinyin API. Convert the Chinese text to spaced pinyin. Reply with ONLY the pinyin.',
+            language === 'Japanese'
+              ? 'Convert the Japanese text to standard romaji. Reply with ONLY the romaji.'
+              : 'Convert the Chinese text to spaced pinyin. Reply with ONLY the pinyin.',
         },
-        { role: 'user', content: chineseText },
+        { role: 'user', content: text },
       ],
     }),
   });

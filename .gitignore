@@ -2,6 +2,7 @@
 config.js
 .env
 .env.*
+.coolify.env
 
 # Local deploy script (per-env, not committed)
 deploy.sh
@@ -27,3 +28,10 @@ dist/
 # Playwright
 /test-results/
 /playwright-report/
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+
+# Python caches
+__pycache__/
+*.pyc
