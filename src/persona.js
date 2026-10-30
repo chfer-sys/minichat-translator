@@ -1,6 +1,7 @@
 import { apiKey, baseUrl } from '../config.js';
 import { getHistory, normalizeTargetLanguage } from './history.js';
 import { buildContext, contextFingerprint } from './persona-context.js';
+import { copyToClipboard } from './clipboard.js';
 import { state } from './state.js';
 
 const KEYS = { profiles: 'persona.profiles.v1', settings: 'persona.settings.v1', active: 'persona.active.v1' };
@@ -153,7 +154,11 @@ function renderMessages() {
   }).join('');
   holder.querySelectorAll('[data-copy]').forEach((button) => button.addEventListener('click', () => {
     const message = profile.messages[Number(button.dataset.copy)];
-    if (message?.reply) navigator.clipboard?.writeText(message.reply).then(() => { button.textContent = 'Copied'; }).catch(() => {});
+    if (!message?.reply) return;
+    copyToClipboard(message.reply, () => {
+      button.textContent = 'Copied';
+      setTimeout(() => { button.textContent = 'Copy reply'; }, 1500);
+    });
   }));
   holder.querySelectorAll('[data-speak]').forEach((button) => button.addEventListener('click', () => {
     const message = profile.messages[Number(button.dataset.speak)];
