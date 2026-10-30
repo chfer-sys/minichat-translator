@@ -12,7 +12,7 @@ import { getHistory, saveHistory, addToHistory, exportHistoryCSV, renderHistoryH
 import { checkHealth } from './health.js';
 import { naturalize } from './naturalize.js';
 import { composeReply } from './reply.js';
-import { initPersona, applyTargetLanguage } from './persona.js';
+import { initPersona, applyTargetLanguage, LOCAL_DATA_EVENT } from './persona.js';
 
 /** @type {HTMLTextAreaElement} */
 let input;
@@ -521,6 +521,8 @@ export function init() {
   initHistoryToggle();
   initClearHistory();
   initExportHistory();
+  // persona.js signals import/clear through an event so history re-renders without a circular import.
+  document.addEventListener(LOCAL_DATA_EVENT, renderHistoryDOM);
   initModeTabs();
   wireEvents();
   initStatusButton();

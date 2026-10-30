@@ -1,5 +1,5 @@
 import { apiKey, baseUrl } from '../config.js';
-import { getHistory, normalizeTargetLanguage } from './history.js';
+import { getHistory, saveHistory, normalizeTargetLanguage } from './history.js';
 import { buildContext, contextFingerprint } from './persona-context.js';
 import { copyToClipboard } from './clipboard.js';
 import { state } from './state.js';
@@ -386,10 +386,87 @@ export function buildBackup() {
   return {
     schemaVersion: 1,
     exportedAt: new Date().toISOString(),
+    activeId,
     profiles,
     settings,
     history: getHistory(),
   };
+}
+
+/** Event persona.js dispatches after local data changes (import/clear) — consumed by ui.js. */
+export const LOCAL_DATA_EVENT = 'persona:local-data-changed';
+
+function setImportStatus(message) {
+  const status = byId('importStatus');
+  if (status) status.textContent = message;
+}
+
+/**
+ * Validate and normalize an untrusted backup payload (parsed JSON).
+ * Returns null when it is not a PERSONA backup (no `profiles` array) so the
+ * caller can reject it without touching current data. Caps mirror loadStore:
+ * last 500 messages per profile, newest 50 history entries; malformed entries
+ * are dropped instead of crashing the render.
+ * @param {*} raw parsed JSON value
+ * @returns {{profiles: Array, settings: object, history: Array, activeId: string, counts: {profiles: number, messages: number, translations: number}} | null}
+ */
+export function normalizeBackup(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw) || !Array.isArray(raw.profiles)) return null;
+  const profiles = raw.profiles
+    .filter((item) => item && typeof item === 'object' && item.id && item.name)
+    .map((item) => ({ ...item, messages: (Array.isArray(item.messages) ? item.messages : []).filter((message) => message && typeof message === 'object').slice(-500) }));
+  const storedSettings = raw.settings && typeof raw.settings === 'object' && !Array.isArray(raw.settings) ? raw.settings : null;
+  const storedLayers = storedSettings?.layers;
+  const layers = storedLayers && typeof storedLayers === 'object' && !Array.isArray(storedLayers) ? storedLayers : {};
+  const settings = { ...defaultSettings, ...(storedSettings || {}), layers: { ...defaultSettings.layers, ...layers } };
+  const history = (Array.isArray(raw.history) ? raw.history : [])
+    .filter((item) => item && typeof item === 'object' && typeof item.text === 'string' && typeof item.translation === 'string')
+    .slice(0, 50) // same newest-first FIFO cap as history.js
+    .map((item, index) => ({ ...item, id: Number.isFinite(item.id) ? item.id : Date.now() + index, direction: item.direction === 'zh-en' ? 'zh-en' : 'en-zh', targetLanguage: typeof item.targetLanguage === 'string' && item.targetLanguage.trim() ? item.targetLanguage.trim() : undefined, timestamp: typeof item.timestamp === 'string' ? item.timestamp : new Date().toISOString() }));
+  const activeId = typeof raw.activeId === 'string' && profiles.some((profile) => profile.id === raw.activeId) ? raw.activeId : profiles[0]?.id || '';
+  const messages = profiles.reduce((count, profile) => count + profile.messages.length, 0);
+  return { profiles, settings, history, activeId, counts: { profiles: profiles.length, messages, translations: history.length } };
+}
+
+function importSummary(counts) {
+  const parts = [`${counts.profiles} profile${counts.profiles === 1 ? '' : 's'}`];
+  if (counts.messages) parts.push(`${counts.messages} saved message${counts.messages === 1 ? '' : 's'}`);
+  parts.push(`${counts.translations} translation${counts.translations === 1 ? '' : 's'}`);
+  return `Imported ${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}.`;
+}
+
+/**
+ * Import a JSON backup: reject invalid files untouched, confirm with counts,
+ * then replace local data, persist and re-render everything.
+ * @param {string} text raw file contents
+ * @returns {boolean} true when the import was applied
+ */
+export function importBackupText(text) {
+  let raw;
+  try { raw = JSON.parse(text); } catch { raw = null; }
+  const backup = normalizeBackup(raw);
+  if (!backup) { setImportStatus('That file is not a PERSONA backup.'); return false; }
+  const { profiles: nextProfiles, settings: nextSettings, history: nextHistory, activeId: nextActiveId, counts } = backup;
+  const question = `Import this backup? It replaces the data on this device.\n\nProfiles: ${counts.profiles}\nSaved messages: ${counts.messages}\nTranslations: ${counts.translations}`;
+  if (!window.confirm(question)) { setImportStatus('Import cancelled.'); return false; }
+  profiles = nextProfiles; settings = nextSettings; activeId = nextActiveId;
+  saveHistory(nextHistory);
+  persist();
+  syncSettingsControls(); renderAll();
+  setImportStatus(importSummary(counts));
+  document.dispatchEvent(new window.CustomEvent(LOCAL_DATA_EVENT));
+  return true;
+}
+
+async function handleImportFile(event) {
+  const file = event.target.files?.[0];
+  event.target.value = ''; // permit re-selecting the same file
+  if (!file) return;
+  try {
+    importBackupText(await file.text());
+  } catch {
+    setImportStatus('That file is not a PERSONA backup.');
+  }
 }
 
 function exportBackup() {
@@ -402,7 +479,9 @@ function clearLocalData() {
   profiles = []; activeId = ''; settings = { ...defaultSettings, layers: { ...defaultSettings.layers } };
   Object.values(KEYS).forEach((key) => localStorage.removeItem(key));
   localStorage.removeItem(HISTORY_KEY);
+  setImportStatus('');
   syncSettingsControls(); renderAll();
+  document.dispatchEvent(new window.CustomEvent(LOCAL_DATA_EVENT));
 }
 
 export function initPersona() {
@@ -438,6 +517,8 @@ export function initPersona() {
     event.target.value = ''; // permit re-selecting the same file
   });
   byId('exportData').addEventListener('click', exportBackup);
+  byId('importData').addEventListener('click', () => byId('importFile').click());
+  byId('importFile').addEventListener('change', handleImportFile);
   byId('clearData').addEventListener('click', clearLocalData);
   byId('voiceInput').addEventListener('click', () => {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;

@@ -187,4 +187,40 @@ test.describe('PERSONA mobile-first app', () => {
     await expect(page.locator('#attachmentPreview img')).toBeVisible();
     await expect(page.locator('#attachmentPreview img')).toHaveAttribute('alt', 'Image to send');
   });
+
+  test('exports a backup, clears local data, and restores profile and history from the downloaded file', async ({ page }) => {
+    await freshApp(page);
+    await createAiko(page);
+    await page.locator('[data-view="translate"]').click();
+    await page.locator('#input').fill('Good morning');
+    await page.locator('#translateBtn').click();
+    await expect(page.locator('#output')).toHaveText('你好！');
+
+    // The clear flow prompts for CLEAR; the import flow confirms with counts.
+    page.on('dialog', async (dialog) => {
+      if (dialog.type() === 'prompt') await dialog.accept('CLEAR');
+      else await dialog.accept();
+    });
+
+    await page.locator('[data-view="settings"]').click();
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('#exportData').click(),
+    ]);
+    const backupPath = await download.path();
+
+    await page.locator('#clearData').click();
+    await expect(page.locator('#storageSummary')).toHaveText('0 profiles · 0 saved messages on this device.');
+    expect(await page.evaluate(() => localStorage.getItem('persona.profiles.v1'))).toBeNull();
+
+    await page.locator('#importFile').setInputFiles(backupPath);
+    await expect(page.locator('#importStatus')).toHaveText('Imported 1 profile and 1 translation.');
+
+    await page.locator('[data-view="chat"]').click();
+    await expect(page.locator('#chatProfileName')).toHaveText('Aiko');
+    await page.locator('[data-view="translate"]').click();
+    await page.locator('#historyBtn').click();
+    await expect(page.locator('.history-item')).toHaveCount(1);
+    await expect(page.locator('.history-item')).toContainText('Good morning');
+  });
 });

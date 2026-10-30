@@ -3,7 +3,7 @@
  * Uses happy-dom (configured in vitest.config.js).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { initPersona, buildBackup, applyTargetLanguage } from '../src/persona.js';
+import { initPersona, buildBackup, applyTargetLanguage, normalizeBackup, importBackupText, LOCAL_DATA_EVENT } from '../src/persona.js';
 
 const KEYS = { profiles: 'persona.profiles.v1', settings: 'persona.settings.v1', active: 'persona.active.v1' };
 const HISTORY_KEY = 'minichat_history';
@@ -52,6 +52,9 @@ function buildDom() {
     <span id="contextSummary"></span>
     <span id="storageSummary"></span>
     <button id="exportData"></button>
+    <button id="importData"></button>
+    <input id="importFile" type="file" accept="application/json,.json">
+    <p id="importStatus" role="status"></p>
     <button id="clearData"></button>
     <button id="voiceInput"></button>
     <button id="speakOutput"></button>
@@ -191,6 +194,7 @@ describe('persona.js settings backup + target language labels', () => {
     const backup = buildBackup();
     expect(backup.schemaVersion).toBe(1);
     expect(backup.exportedAt).toBeTruthy();
+    expect(backup.activeId).toBe('p1');
     expect(backup.profiles).toHaveLength(1);
     expect(backup.profiles[0].name).toBe('Ana');
     expect(backup.settings.tone).toBe('Direct');
@@ -260,5 +264,146 @@ describe('persona.js settings backup + target language labels', () => {
     });
     expect(document.getElementById('pinyinToggle').textContent).toBe('Show pinyin');
     expect(document.getElementById('pronunciationLabel').textContent).toBe('PINYIN');
+  });
+});
+
+describe('persona.js backup import', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    buildDom();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('normalizeBackup rejects anything that is not a PERSONA backup', () => {
+    expect(normalizeBackup(null)).toBeNull();
+    expect(normalizeBackup('text')).toBeNull();
+    expect(normalizeBackup([])).toBeNull();
+    expect(normalizeBackup({})).toBeNull();
+    expect(normalizeBackup({ profiles: 'nope' })).toBeNull();
+    expect(normalizeBackup({ profiles: {} })).toBeNull();
+    expect(normalizeBackup({ settings: { tone: 'Direct' }, history: [] })).toBeNull();
+  });
+
+  it('normalizeBackup drops malformed entries, applies the storage caps and keeps defaults', () => {
+    const messages = (count) => Array.from({ length: count }, (_, index) => ({ role: 'user', text: `m${index}` }));
+    const backup = normalizeBackup({
+      profiles: [
+        { id: 'p1', name: 'Ana', messages: messages(520) },
+        { name: 'missing id' },
+        null,
+        { id: 'p2', name: 'Bo', messages: [null, 'junk', { role: 'user', text: 'ok' }] },
+      ],
+      settings: { tone: 'Direct', layers: { history: false } },
+      history: [
+        ...Array.from({ length: 60 }, (_, index) => ({ id: index, text: `t${index}`, translation: '译', direction: 'en-zh', timestamp: new Date().toISOString() })),
+        { text: 42 },
+        null,
+        { translation: 'no source text' },
+      ],
+      activeId: 'p2',
+    });
+
+    expect(backup.profiles.map((profile) => profile.id)).toEqual(['p1', 'p2']);
+    expect(backup.profiles[0].messages).toHaveLength(500);
+    expect(backup.profiles[1].messages).toHaveLength(1);
+    expect(backup.history).toHaveLength(50);
+    expect(backup.history.every((entry) => typeof entry.text === 'string' && typeof entry.translation === 'string')).toBe(true);
+    expect(backup.settings.tone).toBe('Direct');
+    expect(backup.settings.responseLanguage).toBe('English');
+    expect(backup.settings.layers).toEqual({ profile: true, history: false, preferences: true });
+    expect(backup.activeId).toBe('p2');
+    expect(backup.counts).toEqual({ profiles: 2, messages: 501, translations: 50 });
+  });
+
+  it('normalizeBackup falls back to the first profile when the active id is unknown', () => {
+    const backup = normalizeBackup({ profiles: [{ id: 'p1', name: 'Ana' }], activeId: 'gone' });
+    expect(backup.activeId).toBe('p1');
+  });
+
+  it('importBackupText replaces local data after a counted confirm and reports the result', () => {
+    seedValidStore();
+    initPersona();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    const applied = importBackupText(JSON.stringify({
+      schemaVersion: 1,
+      activeId: 'p9',
+      profiles: [{ id: 'p9', name: 'Bo' }, { id: 'p10', name: 'Cy', messages: [] }],
+      settings: { tone: 'Direct' },
+      history: [{ id: 7, text: 'good morning', translation: '早上好', direction: 'en-zh', timestamp: new Date().toISOString() }],
+    }));
+
+    expect(applied).toBe(true);
+    const question = confirmSpy.mock.calls[0][0];
+    expect(question).toContain('Profiles: 2');
+    expect(question).toContain('Saved messages: 0');
+    expect(question).toContain('Translations: 1');
+
+    expect(JSON.parse(localStorage.getItem(KEYS.profiles)).map((profile) => profile.name)).toEqual(['Bo', 'Cy']);
+    expect(localStorage.getItem(KEYS.active)).toBe('p9');
+    const storedSettings = JSON.parse(localStorage.getItem(KEYS.settings));
+    expect(storedSettings.tone).toBe('Direct');
+    expect(storedSettings.responseLanguage).toBe('English');
+    expect(JSON.parse(localStorage.getItem(HISTORY_KEY)).map((entry) => entry.text)).toEqual(['good morning']);
+
+    expect(document.getElementById('importStatus').textContent).toBe('Imported 2 profiles and 1 translation.');
+    expect(document.getElementById('storageSummary').textContent).toMatch(/^2 profiles · 0 saved messages/);
+    expect(document.getElementById('chatProfileName').textContent).toBe('Bo');
+  });
+
+  it('rejects invalid files and cancelled confirms without changing current data', () => {
+    seedValidStore();
+    initPersona();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    expect(importBackupText('not json at all')).toBe(false);
+    expect(document.getElementById('importStatus').textContent).toBe('That file is not a PERSONA backup.');
+    expect(importBackupText(JSON.stringify({ hello: 'world' }))).toBe(false);
+    expect(document.getElementById('importStatus').textContent).toBe('That file is not a PERSONA backup.');
+    expect(confirmSpy).not.toHaveBeenCalled();
+
+    expect(importBackupText(JSON.stringify({ profiles: [{ id: 'x', name: 'X' }] }))).toBe(false);
+    expect(document.getElementById('importStatus').textContent).toBe('Import cancelled.');
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+
+    expect(JSON.parse(localStorage.getItem(KEYS.profiles)).map((profile) => profile.name)).toEqual(['Ana']);
+    expect(JSON.parse(localStorage.getItem(KEYS.settings)).tone).toBe('Direct');
+    expect(localStorage.getItem(KEYS.active)).toBe('p1');
+    expect(JSON.parse(localStorage.getItem(HISTORY_KEY)).map((entry) => entry.text)).toEqual(['hi']);
+    expect(document.getElementById('chatProfileName').textContent).toBe('Ana');
+  });
+
+  it('import and clear both dispatch the local-data event for the history UI', () => {
+    seedValidStore();
+    initPersona();
+    const listener = vi.fn();
+    document.addEventListener(LOCAL_DATA_EVENT, listener);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    importBackupText(JSON.stringify({ profiles: [], history: [] }));
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    vi.spyOn(window, 'prompt').mockReturnValue('CLEAR');
+    document.getElementById('clearData').click();
+    expect(listener).toHaveBeenCalledTimes(2);
+    document.removeEventListener(LOCAL_DATA_EVENT, listener);
+  });
+
+  it('the file input resets after selection and imports the chosen file', async () => {
+    initPersona();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const input = document.getElementById('importFile');
+    const file = { name: 'backup.json', type: 'application/json', text: async () => JSON.stringify({ profiles: [] }) };
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+
+    input.dispatchEvent(new window.Event('change'));
+
+    await vi.waitFor(() => {
+      expect(document.getElementById('importStatus').textContent).toBe('Imported 0 profiles and 0 translations.');
+    });
+    expect(input.value).toBe('');
   });
 });

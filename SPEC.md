@@ -54,7 +54,7 @@ Persistent chrome:
 - **AI response language**: `English` (clear explanations) or `Target language` (immersive practice)
 - **Default tone**: 5 chips (profile tone overrides it per profile)
 - **Deterministic context layers**: on/off toggles for `profile`, `history`, `preferences`
-- **Local data**: storage summary (`N profiles · M saved messages on this device`), **Export backup** → `persona-backup-YYYY-MM-DD.json` (`schemaVersion: 1` with profiles + settings + translation history), **Clear local data** → requires typing `CLEAR`, then wipes all persona keys **and** translation history and resets settings to defaults
+- **Local data**: storage summary (`N profiles · M saved messages on this device`), **Export backup** → `persona-backup-YYYY-MM-DD.json` (`schemaVersion: 1` with active profile id + profiles + settings + translation history), **Import backup** → hidden `accept="application/json,.json"` file picker (re-selecting the same file works); the JSON is validated/normalized (object with a `profiles` array; optional `settings`/`history`, capped like storage — last 500 messages per profile, newest 50 history entries; malformed entries tolerated) and rejected untouched if it is not a PERSONA backup; a valid backup is confirmed with counts (profiles · saved messages · translations) and then **replaces** local data, persists, re-syncs the settings controls, re-renders every view, restores the active profile, and refreshes the translation history via a `persona:local-data-changed` event from `persona.js`; results show on a `role="status"` line (`Imported 2 profiles and 1 translation.` / `That file is not a PERSONA backup.`), **Clear local data** → requires typing `CLEAR`, then wipes all persona keys **and** translation history, resets settings to defaults, and signals the same event
 - Footer: **"No account. No cloud sync. API requests only when you ask for AI."**
 
 ## Deterministic Context
@@ -70,7 +70,7 @@ Each layer is marked included/excluded (excluded layers stay inspectable in the 
   - `persona.profiles.v1` (profiles + messages, capped at last 500 messages per profile), `persona.settings.v1`, `persona.active.v1`, `minichat_history`
 - Boot normalizes corrupt/legacy payloads and only rewrites storage when something actually changed (avoids clobbering other open tabs)
 - **Quota handling**: on write failure, retries once with image payloads stripped from the stored copy (in-memory messages keep images for the session) and surfaces a warning to export a backup
-- **Export only** — there is no import/restore and no cloud sync. Data moves between devices only if the user carries the exported JSON/CSV themselves.
+- **Local-first transfer** — no cloud sync; data moves between devices only when the user carries the exported JSON backup (re-importable via **Settings › Import backup**) or CSV history themselves.
 
 ## API Integration
 - **Endpoint**: `${baseUrl}/chat/completions` — OpenAI-compatible chat completions, model **`deepseek-v4-flash`**
@@ -106,5 +106,4 @@ Each layer is marked included/excluded (excluded layers stay inspectable in the 
 
 ## Non-Goals / Explicitly Not Implemented
 - No accounts, no login, no cloud sync, no multi-device sync
-- No backup **import** (export-only; JSON/CSV files are not re-ingested by the app)
 - No backend beyond the thin CORS proxy; no analytics, no telemetry
