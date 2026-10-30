@@ -13,6 +13,9 @@ const CHAT_TIMEOUT_MS = 45000;
 const MAX_NOTE_LINES = 40;
 const MAX_NOTE_CHARS = 2000;
 const COLORS = ['#f5d7c9', '#e8edcf', '#e6e8f6', '#f5e7bd', '#dcece8'];
+// Inline SVG action icons for the suggested-reply bubble (copy + text-to-speech).
+const COPY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15H4.5A2.5 2.5 0 0 1 2 12.5v-8A2.5 2.5 0 0 1 4.5 2h8A2.5 2.5 0 0 1 15 4.5V5"/></svg>';
+const LISTEN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6.5 9H3v6h3.5L11 19V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9.5 9.5 0 0 1 0 13"/></svg>';
 const defaultSettings = { responseLanguage: 'English', tone: 'Friendly', layers: { profile: true, history: true, preferences: true } };
 let profiles = [];
 let settings = { ...defaultSettings, layers: { ...defaultSettings.layers } };
@@ -145,7 +148,7 @@ function renderMessages() {
   }
   holder.innerHTML = profile.messages.map((message, index) => {
     const image = message.image ? `<img src="${escapeHTML(message.image)}" alt="Attached image">` : '';
-    const suggestion = message.role === 'assistant' && message.reply ? `<div class="ai-reply-box"><div class="ai-reply-label">SUGGESTED ${escapeHTML(profile.targetLanguage || 'TARGET LANGUAGE')} REPLY</div><div class="ai-reply-text">${escapeHTML(message.reply)}</div>${message.pronunciation ? `<div class="ai-pronunciation">${escapeHTML(message.pronunciation)}</div>` : ''}<div class="bubble-actions"><button data-copy="${index}">Copy reply</button><button data-speak="${index}">Listen</button></div></div>` : '';
+    const suggestion = message.role === 'assistant' && message.reply ? `<div class="ai-reply-box"><div class="ai-reply-label">SUGGESTED ${escapeHTML(profile.targetLanguage || 'TARGET LANGUAGE')} REPLY</div><div class="ai-reply-text">${escapeHTML(message.reply)}</div>${message.pronunciation ? `<div class="ai-pronunciation">${escapeHTML(message.pronunciation)}</div>` : ''}<div class="bubble-actions"><button class="bubble-icon-btn" data-copy="${index}" aria-label="Copy reply" title="Copy reply">${COPY_ICON}</button><button class="bubble-icon-btn" data-speak="${index}" aria-label="Listen" title="Listen">${LISTEN_ICON}</button></div></div>` : '';
     // Retry is only offered on the current last failed request: an older
     // failure that a later message followed must not stay clickable, or it
     // would re-send the newest unrelated user message.
@@ -156,8 +159,9 @@ function renderMessages() {
     const message = profile.messages[Number(button.dataset.copy)];
     if (!message?.reply) return;
     copyToClipboard(message.reply, () => {
-      button.textContent = 'Copied';
-      setTimeout(() => { button.textContent = 'Copy reply'; }, 1500);
+      button.classList.add('copied');
+      button.setAttribute('aria-label', 'Copied');
+      setTimeout(() => { button.classList.remove('copied'); button.setAttribute('aria-label', 'Copy reply'); }, 1500);
     });
   }));
   holder.querySelectorAll('[data-speak]').forEach((button) => button.addEventListener('click', () => {

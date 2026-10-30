@@ -149,7 +149,7 @@ test.describe('PERSONA mobile-first app', () => {
     await expect(page.locator('.ai-reply-text')).toHaveText('陶芸が好きなんですね。');
     await expect(page.locator('.ai-pronunciation')).toContainText('Tōgei ga suki');
     await page.locator('[data-copy]').click();
-    await expect(page.locator('[data-copy]')).toHaveText('Copied');
+    await expect(page.locator('[data-copy]')).toHaveAttribute('aria-label', 'Copied');
     expect(requestBody.messages[0].content.indexOf('PROFILE')).toBeLessThan(requestBody.messages[0].content.indexOf('HISTORY'));
     expect(requestBody.messages.at(-1).content).toBe('I love pottery.');
     await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('persona.profiles.v1'))[0].notes)).toContain('Aiko enjoys pottery.');
